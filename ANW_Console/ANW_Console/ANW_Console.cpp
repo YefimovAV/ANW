@@ -14,7 +14,16 @@ void ReadFolder() {
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	cout << "Hello world111!!!" << endl; 
+	string mode;
+	for(;;) {
+	cout << "Choose a mode (teach/recognition): ";
+	cin >> mode;
+	if(mode == "teach") { cout << "You choose Teach mode" << endl; break; }
+		//Teach(), break; 
+	else if(mode == "recognition") { cout << "You choose recognition mode" << endl; break; }
+		//Recognition(), break;
+	else cout << "Bad value, choose again" << endl;
+	}
 	return 0;
 }
 
