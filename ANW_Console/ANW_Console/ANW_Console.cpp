@@ -8,12 +8,12 @@
 
 using namespace std;
 
-void ReadFolder(string path) {
+void ReadFolder(string loadPath, string savePath) {
 	namespace fs = boost::filesystem;
 	ofstream pathList;
-	pathList.open("result/pathListTeach.txt");
+	pathList.open(savePath);
 	cout << "Using files:" << endl; 
-	for (fs::directory_iterator it(path), end; it != end; ++it) {
+	for (fs::directory_iterator it(loadPath), end; it != end; ++it) {
         if (it->path().extension() == ".bmp") {
 			cout << it->path().filename() << endl;
 			pathList << *it << endl;
@@ -32,10 +32,12 @@ int _tmain(int argc, _TCHAR* argv[])
 		cin >> mode;
 		if(mode == "teach") { 
 			cout << "You choose Teach mode" << endl; 
-			ReadFolder("teach/");  
+			ReadFolder("teach/", "result/pathListTeach.txt");  
 		}
-		else if(mode == "recognition") { cout << "You choose recognition mode" << endl; }
-			//Recognition(), break;
+		else if(mode == "recognition") {
+			cout << "You choose recognition mode" << endl; 
+			ReadFolder("recognition/", "result/pathListRecognition.txt");
+		}
 		else cout << "Bad value, choose again" << endl;
 	}
 	cout << "Continue (y/n>? ";

@@ -7,4 +7,4 @@
 "teach\i03.bmp"
 "teach\j07.bmp"
 "teach\v02.bmp"
-"teach\zz06.bmp"
+"teach\z06.bmp"
