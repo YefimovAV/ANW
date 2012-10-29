@@ -77,7 +77,7 @@ void ReadFolder(string loadPath, string savePath) {
 	pathList.close();
 }
 
-void ImageProcessing (string filePath, string mode) {
+int ImageProcessing (string filePath, string mode) {
 	agg::pixel_map pmap;	
 	ifstream imageFile;
 	string imagePath;
@@ -110,6 +110,7 @@ void ImageProcessing (string filePath, string mode) {
 		}
 		else break;
 	}
+	return iterator;
 }
 
 
@@ -118,6 +119,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	string mode;
 	char answer = 'y';
+	int imageCount;
 	for(;;) {
 	if(answer == 'y') {
 		cout << "Choose a mode (teach/recognition): ";
@@ -127,16 +129,16 @@ int _tmain(int argc, _TCHAR* argv[])
 			cout << "Read folder..." << endl;
 			ReadFolder("teach/", "result/pathListTeach.txt");
 			cout << "Image processing... ";
-			ImageProcessing("result/pathListTeach.txt", "teach/");
-			cout << "ready" <<endl;
+			imageCount = ImageProcessing("result/pathListTeach.txt", "teach/");
+			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
 			cout << "Read folder..." << endl;
 			ReadFolder("recognition/", "result/pathListRecognition.txt");
 			cout << "Image processing... ";
-			ImageProcessing("result/pathListRecognition.txt", "recognition/");
-			cout << "ready" <<endl;
+			imageCount = ImageProcessing("result/pathListRecognition.txt", "recognition/");
+			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
 		}
 		else cout << "Bad value, choose again" << endl;
 	}

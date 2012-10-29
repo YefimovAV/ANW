@@ -2,7 +2,6 @@
 
 unsigned unsigned char mask=0x80;
 
-		   /* Основная функция выделения скелета */
 
 int skelet (unsigned unsigned char *b, int ns, int ls );
 int readpix (unsigned char *b, unsigned char *bx, int ls, int i, int j );
@@ -62,9 +61,8 @@ int skelet (unsigned char *b, int ns, int ls )
 							   }
 							prism=1;
 						   }
-					   } /* Конец if(pix) */
-				   } /* Конец цикла по j */
-				 /* Конец цикла по i */
+					   } 
+				   } 
 			  if(prism)
 				for(i=0;i<ns;i++)
 				  for(j=0;j<nj;j++)
@@ -73,14 +71,11 @@ int skelet (unsigned char *b, int ns, int ls )
 					  if(pix==3)
 						outbit(bx,ls,i,j,0);
 					 }
-			 }  /* Конец цикла по js */
-		 } /* Конец цикла while */
+			 } 
+		 }
 	  free(bx);
 	  return 0;
-   }   /* Конец функции skelet */
-
-
-		   /* Чтение значения пиксела */
+   }  
 
 int readpix (unsigned char *b,unsigned char *bx, int ls, int i, int j )
   {
@@ -106,10 +101,7 @@ int readpix (unsigned char *b,unsigned char *bx, int ls, int i, int j )
 		  else
 			pix=0;
 	  return pix;
-   }    /* Конец функции readpix */
-
-
-		   /* Запись значения в упакованную матрицу */
+   }    
 
 void outbit (unsigned char *b, int ls, int i, int j, int zn )
   {
@@ -126,8 +118,6 @@ void outbit (unsigned char *b, int ls, int i, int j, int zn )
 	  *(b+off)=c;
    }
 
-
-		   /* Проверка конфигурации */
 
  char *stconf[]={"0AAA0BBB","AA0BBB0A","0AAAAA02",
 				"AAAA020A","AA020AAA","020AAAAA"};
@@ -163,10 +153,7 @@ int checkconfig (unsigned char *b, unsigned char *bx, int ns, int ls, int i, int
 			 }
 		 }
 	  return prost;
-   }   /* Конец функции checkconfig */
-
-
-		   /* Чтение конфигурации */
+   }  
 
 void readconfig (unsigned char *b,unsigned char *bx, int ns, int ls, int i, int j,
 				  int mconf[] )
@@ -202,4 +189,4 @@ void readconfig (unsigned char *b,unsigned char *bx, int ns, int ls, int i, int 
 			pixn=readpix(b,bx,ls,in,jn);
 		  mconf[js]=pixn;
 		 }
-   } /* Конец функции readconfig */
+   } 
