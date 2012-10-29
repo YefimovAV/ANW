@@ -3,20 +3,35 @@
 
 #include "stdafx.h"
 #include <iostream>
+#include <fstream>
+#include <string>
 #include "agg_win32_bmp.h"
 #include <boost/filesystem.hpp>
 
 using namespace std;
+const int MAX_SYMBOL_COUNT = 3;
 
 void ReadFolder(string loadPath, string savePath) {
 	namespace fs = boost::filesystem;
 	ofstream pathList;
+	ifstream fileNameStream;
+	string fileName;
+	string symbolValue;
 	pathList.open(savePath);
-	cout << "Using files:" << endl; 
+	cout << "Used files:" << endl; 
 	for (fs::directory_iterator it(loadPath), end; it != end; ++it) {
-        if (it->path().extension() == ".bmp") {
-			cout << it->path().filename() << endl;
-			pathList << *it << endl;
+		if (it->path().extension() == ".bmp") {
+			int iterator = 0;
+			symbolValue = "";
+			fileName = it->path().filename().string();
+			while(fileName[iterator] < '0' || fileName[iterator] > '9') {
+				if (fileName[iterator] == '"') continue;
+				string temp = string(&fileName[iterator],0,1);
+				symbolValue += temp;
+				++iterator;
+			}
+			cout << it->path().filename() << " " << symbolValue << endl;;
+			pathList << *it << endl << symbolValue << endl;
 		}
 	}
 	pathList.close();
