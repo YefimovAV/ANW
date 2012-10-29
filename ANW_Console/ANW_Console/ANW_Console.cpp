@@ -5,17 +5,50 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include "agg_win32_bmp.h"
+#include "NoiseEdit.h"
+#include "Skelet.h"
 #include <boost/filesystem.hpp>
 
 using namespace std;
 const int MAX_SYMBOL_COUNT = 3;
+const int MAX_IMAGE_SIZE = 1000 * 1000;
+
+void k_to_b(unsigned char* k, unsigned char* b,unsigned rowLength, int wI, int hI)
+{
+	for(int i = 0; i < hI; i++)
+	{
+		for(int j = 0; j < wI; j++)
+		{
+			b[i*rowLength + j / 8] = 0;
+		}
+	}
+
+	for(int i = 0; i < hI; i++)
+	{
+		for(int j = 0; j < wI; j++)
+		{
+			b[i*rowLength + j / 8] |= !!k[(hI - i - 1)*wI + j] << (7 - j % 8);
+		}
+	}
+}
+
+void b_to_k(unsigned char* b, unsigned char* k,unsigned rowLength, int wI, int hI)
+{
+	for(int i = 0; i < hI; i++)
+	{
+		for(int j = 0; j < wI; j++)
+		{
+			k[(hI - i - 1)*wI + j] = !!(b[i*rowLength + j / 8] & (1 << (7 - j % 8)));
+		}
+	}
+}
 
 void ReadFolder(string loadPath, string savePath) {
 	namespace fs = boost::filesystem;
 	ofstream pathList;
-	ifstream fileNameStream;
-	string fileName;
+	string filePath;
 	string symbolValue;
 	pathList.open(savePath);
 	cout << "Used files:" << endl; 
@@ -23,19 +56,63 @@ void ReadFolder(string loadPath, string savePath) {
 		if (it->path().extension() == ".bmp") {
 			int iterator = 0;
 			symbolValue = "";
-			fileName = it->path().filename().string();
-			while(fileName[iterator] < '0' || fileName[iterator] > '9') {
-				if (fileName[iterator] == '"') continue;
-				string temp = string(&fileName[iterator],0,1);
+			filePath = "";
+			while(it->path().filename().string()[iterator] < '0' || it->path().filename().string()[iterator] > '9') {
+				if (it->path().filename().string()[iterator] == '"') continue;
+				string temp = string(&it->path().filename().string()[iterator],0,1);
 				symbolValue += temp;
 				++iterator;
 			}
-			cout << it->path().filename() << " " << symbolValue << endl;;
-			pathList << *it << endl << symbolValue << endl;
+			iterator = 0;
+			while(iterator < it->path().string().length()) {
+				if (it->path().string()[iterator] == '"') continue;
+				string temp = string(&it->path().string()[iterator],0,1);
+				filePath += temp;
+				++iterator;
+			}
+			cout << it->path().filename() << " " << symbolValue << endl;
+			pathList << filePath << endl << symbolValue << endl;
 		}
 	}
 	pathList.close();
 }
+
+void ImageProcessing (string filePath, string mode) {
+	agg::pixel_map pmap;	
+	ifstream imageFile;
+	string imagePath;
+	string imageName;
+	string fullNameResult;
+	int iterator = 0;
+	string strIterator;
+	imageFile.open(filePath);
+	while(!imageFile.eof()) {
+		ostringstream streamStrIterator;
+		unsigned char *blackAndWhite = new unsigned char[MAX_IMAGE_SIZE];
+		getline(imageFile, imagePath);
+		if(imagePath.length() > 0) {
+		pmap.load_from_bmp(imagePath.c_str());
+			unsigned char* imageBuffer = pmap.buf();
+			int imageWidth = pmap.width();
+			int imageHeight = pmap.height();
+			unsigned rowLength = pmap.calc_row_len(imageWidth,1);
+			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
+			blackAndWhite = NoiseEdit(blackAndWhite,imageWidth,imageHeight);
+			k_to_b(blackAndWhite, imageBuffer, rowLength, imageWidth, imageHeight);
+			skelet(imageBuffer, imageHeight, rowLength);
+			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
+			getline(imageFile, imageName);
+			streamStrIterator << iterator;
+			strIterator = streamStrIterator.str();
+			fullNameResult = "result/images/" + mode + imageName + strIterator + ".bmp";
+			pmap.save_as_bmp(fullNameResult.c_str());
+			++iterator;
+		}
+		else break;
+	}
+}
+
+
 
 int _tmain(int argc, _TCHAR* argv[])
 {
@@ -47,11 +124,19 @@ int _tmain(int argc, _TCHAR* argv[])
 		cin >> mode;
 		if(mode == "teach") { 
 			cout << "You choose Teach mode" << endl; 
-			ReadFolder("teach/", "result/pathListTeach.txt");  
+			cout << "Read folder..." << endl;
+			ReadFolder("teach/", "result/pathListTeach.txt");
+			cout << "Image processing... ";
+			ImageProcessing("result/pathListTeach.txt", "teach/");
+			cout << "ready" <<endl;
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
+			cout << "Read folder..." << endl;
 			ReadFolder("recognition/", "result/pathListRecognition.txt");
+			cout << "Image processing... ";
+			ImageProcessing("result/pathListRecognition.txt", "recognition/");
+			cout << "ready" <<endl;
 		}
 		else cout << "Bad value, choose again" << endl;
 	}

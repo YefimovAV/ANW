@@ -33,6 +33,12 @@
     <ClInclude Include="agg_win32_bmp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NoiseEdit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Skelet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
