@@ -45,6 +45,65 @@ void b_to_k(unsigned char* b, unsigned char* k,unsigned rowLength, int wI, int h
 	}
 }
 
+int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex) {
+	int nextIndex;
+	int neighborCount = 0;
+	nextIndex = currentIndex - iW;
+	visited[currentIndex] = 1;
+	currentIndex - iW > 0 && visited[currentIndex - iW] == 1 ? ++neighborCount : 0;
+	(currentIndex - iW + 1) % iW != 0 && currentIndex - iW + 1 > 0 && visited[currentIndex - iW + 1] == 1 ? ++neighborCount : 0;
+	(currentIndex + 1) % iW != 0 && currentIndex + 1 < iW * iH && visited[currentIndex + 1] == 1 ? ++neighborCount : 0;
+	(currentIndex + iW + 1) % iW != 0 && currentIndex + iW + 1 < iW * iH && visited[currentIndex + iW + 1] == 1 ? ++neighborCount : 0;
+	currentIndex + iW < iW * iH && visited[currentIndex + iW] == 1 ? ++neighborCount : 0;
+	currentIndex % iW != 0 && currentIndex + iW - 1 < iW * iH && visited[currentIndex + iW - 1] == 1 ? ++neighborCount : 0;
+	currentIndex % iW != 0 && currentIndex - 1 > 0 && visited[currentIndex - 1] == 1 ? ++neighborCount : 0;
+	currentIndex % iW != 0 && currentIndex - iW - 1 > 0 && visited[currentIndex + iW + 1] == 1 ? ++neighborCount : 0;
+	if (neighborCount > 2) return currentIndex; 
+	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+		visited[nextIndex] = 1;
+		currentIndex = nextIndex;
+		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+	}
+	else nextIndex = currentIndex - iW + 1;
+	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+		visited[nextIndex] = 1;
+		currentIndex = nextIndex;
+		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+	}
+	else nextIndex = currentIndex + 1;
+	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+		visited[nextIndex] = 1;
+		currentIndex = nextIndex;
+		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+	}
+}
+
+
+int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex) {
+	int nextIndex;
+	nextIndex = currentIndex - iW;
+	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+		visited[nextIndex] = 1;
+		currentIndex = nextIndex;
+		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+	}
+	else nextIndex = currentIndex - iW + 1;
+	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+		visited[nextIndex] = 1;
+		currentIndex = nextIndex;
+		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+	}
+	else nextIndex = currentIndex - 1;
+	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+		visited[nextIndex] = 1;
+		currentIndex = nextIndex;
+		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+	}
+}
+
+
+
+
 void SymbolScan(int iW, int iH, unsigned char *bw, unsigned char *scan) {
 	int startIndex;
 	bool *visited = new bool [MAX_IMAGE_SIZE];
@@ -53,7 +112,9 @@ void SymbolScan(int iW, int iH, unsigned char *bw, unsigned char *scan) {
 	for (int i = 0; i < iW; ++i) 
 		for (int j = iH - 1; j > 0; --j) 
 			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; break; }
-	
+	for(;;) {
+
+	}
 
 }
 
