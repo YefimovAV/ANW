@@ -44,78 +44,127 @@ void b_to_k(unsigned char* b, unsigned char* k,unsigned rowLength, int wI, int h
 		}
 	}
 }
-
 int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex) {
+	int neighborCount;
+	for (int i = 0; i < iW; ++i) 
+		for (int j = iH - 1; j > 0; --j) {
+			if (bw[i + j * iW] == 1) {
+				neighborCount = 0;
+				currentIndex = i + j * iW;
+				currentIndex - iW > 0 && bw[currentIndex - iW] == 1 ? ++neighborCount : 0;
+				(currentIndex - iW + 1) % iW != 0 && currentIndex - iW + 1 > 0 && bw[currentIndex - iW + 1] == 1 ? ++neighborCount : 0;
+				(currentIndex + 1) % iW != 0 && currentIndex + 1 < iW * iH && bw[currentIndex + 1] == 1 ? ++neighborCount : 0;
+				(currentIndex + iW + 1) % iW != 0 && currentIndex + iW + 1 < iW * iH && bw[currentIndex + iW + 1] == 1 ? ++neighborCount : 0;
+				currentIndex + iW < iW * iH && bw[currentIndex + iW] == 1 ? ++neighborCount : 0;
+				currentIndex % iW != 0 && currentIndex + iW - 1 < iW * iH && bw[currentIndex + iW - 1] == 1 ? ++neighborCount : 0;
+				currentIndex % iW != 0 && currentIndex - 1 > 0 && bw[currentIndex - 1] == 1 ? ++neighborCount : 0;
+				currentIndex % iW != 0 && currentIndex - iW - 1 > 0 && bw[currentIndex - iW - 1] == 1 ? ++neighborCount : 0;
+				if (neighborCount > 2) return currentIndex;
+			}		
+		}
+	return currentIndex;	
+}
+
+int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, int *scan, int &iterator) {
 	int nextIndex;
-	int neighborCount = 0;
 	nextIndex = currentIndex - iW;
 	visited[currentIndex] = 1;
-	currentIndex - iW > 0 && visited[currentIndex - iW] == 1 ? ++neighborCount : 0;
-	(currentIndex - iW + 1) % iW != 0 && currentIndex - iW + 1 > 0 && visited[currentIndex - iW + 1] == 1 ? ++neighborCount : 0;
-	(currentIndex + 1) % iW != 0 && currentIndex + 1 < iW * iH && visited[currentIndex + 1] == 1 ? ++neighborCount : 0;
-	(currentIndex + iW + 1) % iW != 0 && currentIndex + iW + 1 < iW * iH && visited[currentIndex + iW + 1] == 1 ? ++neighborCount : 0;
-	currentIndex + iW < iW * iH && visited[currentIndex + iW] == 1 ? ++neighborCount : 0;
-	currentIndex % iW != 0 && currentIndex + iW - 1 < iW * iH && visited[currentIndex + iW - 1] == 1 ? ++neighborCount : 0;
-	currentIndex % iW != 0 && currentIndex - 1 > 0 && visited[currentIndex - 1] == 1 ? ++neighborCount : 0;
-	currentIndex % iW != 0 && currentIndex - iW - 1 > 0 && visited[currentIndex + iW + 1] == 1 ? ++neighborCount : 0;
-	if (neighborCount > 2) return currentIndex; 
 	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
-		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
 	}
 	else nextIndex = currentIndex - iW + 1;
 	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
-		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
 	}
 	else nextIndex = currentIndex + 1;
-	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
-		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
 	}
-}
-
-
-int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex) {
-	int nextIndex;
-	nextIndex = currentIndex - iW;
-	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+	else nextIndex = currentIndex + iW + 1;
+	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
-		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
 	}
-	else nextIndex = currentIndex - iW + 1;
-	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+	else nextIndex = currentIndex + iW;
+	if (nextIndex < iW * iH && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
-		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+	}
+	else nextIndex = currentIndex + iW - 1;
+	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+		visited[nextIndex] = 1;
+		currentIndex = nextIndex;
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
 	}
 	else nextIndex = currentIndex - 1;
-	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
-		nextIndex = FindFirstNodal(iW, iH, bw, visited, currentIndex);
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
 	}
+	else nextIndex = currentIndex - iW - 1;
+	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+		visited[nextIndex] = 1;
+		currentIndex = nextIndex;
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+	}
+	else return currentIndex;
 }
 
-
-
-
-void SymbolScan(int iW, int iH, unsigned char *bw, unsigned char *scan) {
+void SymbolScan(int iW, int iH, unsigned char *bw, int *scan) {
 	int startIndex;
+	int firstNodal;
+	int iterator = 0;
 	bool *visited = new bool [MAX_IMAGE_SIZE];
 	for (int i = 0; i < iW * iH; ++i)
 		visited[i] = 0;
 	for (int i = 0; i < iW; ++i) 
-		for (int j = iH - 1; j > 0; --j) 
+		for (int j = iH - 1; j > 0; --j)	
 			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; break; }
-	for(;;) {
-
-	}
-
+	firstNodal = FindFirstNodal(iW, iH, bw, visited, startIndex);
+	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, iterator);
+	cout << "x: " << firstNodal % iW << " y: " << (firstNodal - firstNodal % iW) / iW << endl;
+	delete[] visited;
 }
 
 void ReadFolder(string loadPath, string savePath) {
@@ -154,16 +203,21 @@ int ImageProcessing (string filePath, string mode) {
 	agg::pixel_map pmap;	
 	ifstream imageFile;
 	ifstream scanFile;
+	ofstream pathFile;
 	string imagePath;
 	string imageName;
 	string fullNameResult;
 	int iterator = 0;
 	string strIterator;
 	imageFile.open(filePath);
+	if (mode == "teach/")
+		pathFile.open("result/SymbolPathTeach.txt");
+	if (mode == "recognition/")
+		pathFile.open("result/SymbolPathTeach.txt");
 	while(!imageFile.eof()) {
 		ostringstream streamStrIterator;
 		unsigned char *blackAndWhite = new unsigned char[MAX_IMAGE_SIZE];
-		unsigned char *scanArray = new unsigned char[MAX_IMAGE_SIZE];
+		int *scanArray = new int[2 * MAX_IMAGE_SIZE];
 		getline(imageFile, imagePath);
 		if(imagePath.length() > 0) {
 			pmap.load_from_bmp(imagePath.c_str());
@@ -177,6 +231,9 @@ int ImageProcessing (string filePath, string mode) {
 			skelet(imageBuffer, imageHeight, rowLength);
 			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
 			SymbolScan(imageWidth, imageHeight, blackAndWhite, scanArray);
+			for (int i = 0; i < 2 * imageWidth * imageHeight; ++i) {
+				pathFile << scanArray[i] << endl;
+			}
 			getline(imageFile, imageName);
 			streamStrIterator << iterator;
 			strIterator = streamStrIterator.str();
@@ -186,6 +243,7 @@ int ImageProcessing (string filePath, string mode) {
 		}
 		else break;
 	}
+	pathFile.close();
 	return iterator;
 }
 
