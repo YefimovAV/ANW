@@ -45,6 +45,18 @@ void b_to_k(unsigned char* b, unsigned char* k,unsigned rowLength, int wI, int h
 	}
 }
 
+void SymbolScan(int iW, int iH, unsigned char *bw, unsigned char *scan) {
+	int startIndex;
+	bool *visited = new bool [MAX_IMAGE_SIZE];
+	for (int i = 0; i < iW * iH; ++i)
+		visited[i] = 0;
+	for (int i = 0; i < iW; ++i) 
+		for (int j = iH - 1; j > 0; --j) 
+			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; break; }
+	
+
+}
+
 void ReadFolder(string loadPath, string savePath) {
 	namespace fs = boost::filesystem;
 	ofstream pathList;
@@ -80,6 +92,7 @@ void ReadFolder(string loadPath, string savePath) {
 int ImageProcessing (string filePath, string mode) {
 	agg::pixel_map pmap;	
 	ifstream imageFile;
+	ifstream scanFile;
 	string imagePath;
 	string imageName;
 	string fullNameResult;
@@ -89,9 +102,10 @@ int ImageProcessing (string filePath, string mode) {
 	while(!imageFile.eof()) {
 		ostringstream streamStrIterator;
 		unsigned char *blackAndWhite = new unsigned char[MAX_IMAGE_SIZE];
+		unsigned char *scanArray = new unsigned char[MAX_IMAGE_SIZE];
 		getline(imageFile, imagePath);
 		if(imagePath.length() > 0) {
-		pmap.load_from_bmp(imagePath.c_str());
+			pmap.load_from_bmp(imagePath.c_str());
 			unsigned char* imageBuffer = pmap.buf();
 			int imageWidth = pmap.width();
 			int imageHeight = pmap.height();
@@ -101,6 +115,7 @@ int ImageProcessing (string filePath, string mode) {
 			k_to_b(blackAndWhite, imageBuffer, rowLength, imageWidth, imageHeight);
 			skelet(imageBuffer, imageHeight, rowLength);
 			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
+			SymbolScan(imageWidth, imageHeight, blackAndWhite, scanArray);
 			getline(imageFile, imageName);
 			streamStrIterator << iterator;
 			strIterator = streamStrIterator.str();
@@ -112,8 +127,6 @@ int ImageProcessing (string filePath, string mode) {
 	}
 	return iterator;
 }
-
-
 
 int _tmain(int argc, _TCHAR* argv[])
 {
