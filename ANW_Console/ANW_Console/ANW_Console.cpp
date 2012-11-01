@@ -171,7 +171,6 @@ void SymbolScan(int iW, int iH, unsigned char *bw, int *scan, int &whitePixelCou
 			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; break; }
 	firstNodal = FindFirstNodal(iW, iH, bw, visited, startIndex);
 	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, whitePixelCount);
-	cout << "x: " << firstNodal % iW << " y: " << (firstNodal - firstNodal % iW) / iW << endl;
 	delete[] visited;
 }
 
@@ -219,6 +218,7 @@ int ImageProcessing (string filePath, string mode) {
 	int whitePixelCount;
 	string strIterator;
 	imageFile.open(filePath);
+	cout << "Scanning images: ";
 	while(!imageFile.eof()) {
 		ostringstream streamStrIterator;
 		unsigned char *blackAndWhite = new unsigned char[MAX_IMAGE_SIZE];
@@ -249,7 +249,12 @@ int ImageProcessing (string filePath, string mode) {
 			++iterator;
 			pathFile.close();
 		}
-		else break;
+		else {
+			cout << "ready" << endl;
+			delete[] blackAndWhite;
+			delete[] scanArray;
+			break;
+		}
 	}
 	return iterator;
 }
@@ -262,22 +267,22 @@ int _tmain(int argc, _TCHAR* argv[])
 	for(;;) {
 	if(answer == 'y') {
 		cout << "Choose a mode (teach/recognition): ";
-		cin >> mo-de;
+		cin >> mode;
 		if(mode == "teach") { 
 			cout << "You choose Teach mode" << endl; 
 			cout << "Read folder..." << endl;
 			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH);
-			cout << "Image processing... ";
+			cout << "Image processing... " << endl;
 			imageCount = ImageProcessing(PATH_LIST_TEACH, TEACH_MODE);
-			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
+			cout << "...ready" <<endl << "Processed " << imageCount << " images." << endl;
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
 			cout << "Read folder..." << endl;
 			ReadFolder(RECOGNITION_FOLDER, PATH_LIST_RECOGNITION);
-			cout << "Image processing... ";
+			cout << "Image processing... " << endl;
 			imageCount = ImageProcessing(PATH_LIST_RECOGNITION, RECOGNITION_MODE);
-			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
+			cout << "...ready" <<endl << "Processed " << imageCount << " images." << endl;
 		}
 		else cout << "Bad value, choose again" << endl;
 	}
