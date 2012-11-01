@@ -14,6 +14,8 @@
 using namespace std;
 const int MAX_SYMBOL_COUNT = 3;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
+const string TEACH_FOLDER = "teach/";
+const string RECOGNITION_FOLDER = "recognition/";
 
 void k_to_b(unsigned char* k, unsigned char* b,unsigned rowLength, int wI, int hI)
 {
@@ -68,7 +70,8 @@ int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int current
 int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, int *scan, int &iterator) {
 	int nextIndex;
 	nextIndex = currentIndex - iW;
-	visited[currentIndex] = 1;
+	if (iterator == 0) visited[currentIndex] = 0;
+	else visited[currentIndex] = 1;
 	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
@@ -151,10 +154,9 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 	else return currentIndex;
 }
 
-void SymbolScan(int iW, int iH, unsigned char *bw, int *scan) {
+void SymbolScan(int iW, int iH, unsigned char *bw, int *scan, int &whitePixelCount) {
 	int startIndex;
 	int firstNodal;
-	int iterator = 0;
 	bool *visited = new bool [MAX_IMAGE_SIZE];
 	for (int i = 0; i < iW * iH; ++i)
 		visited[i] = 0;
@@ -162,7 +164,7 @@ void SymbolScan(int iW, int iH, unsigned char *bw, int *scan) {
 		for (int j = iH - 1; j > 0; --j)	
 			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; break; }
 	firstNodal = FindFirstNodal(iW, iH, bw, visited, startIndex);
-	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, iterator);
+	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, whitePixelCount);
 	cout << "x: " << firstNodal % iW << " y: " << (firstNodal - firstNodal % iW) / iW << endl;
 	delete[] visited;
 }
@@ -208,16 +210,14 @@ int ImageProcessing (string filePath, string mode) {
 	string imageName;
 	string fullNameResult;
 	int iterator = 0;
+	int whitePixelCount;
 	string strIterator;
 	imageFile.open(filePath);
-	if (mode == "teach/")
-		pathFile.open("result/SymbolPathTeach.txt");
-	if (mode == "recognition/")
-		pathFile.open("result/SymbolPathTeach.txt");
 	while(!imageFile.eof()) {
 		ostringstream streamStrIterator;
 		unsigned char *blackAndWhite = new unsigned char[MAX_IMAGE_SIZE];
 		int *scanArray = new int[2 * MAX_IMAGE_SIZE];
+		whitePixelCount = 0;
 		getline(imageFile, imagePath);
 		if(imagePath.length() > 0) {
 			pmap.load_from_bmp(imagePath.c_str());
@@ -230,20 +230,21 @@ int ImageProcessing (string filePath, string mode) {
 			k_to_b(blackAndWhite, imageBuffer, rowLength, imageWidth, imageHeight);
 			skelet(imageBuffer, imageHeight, rowLength);
 			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
-			SymbolScan(imageWidth, imageHeight, blackAndWhite, scanArray);
-			for (int i = 0; i < 2 * imageWidth * imageHeight; ++i) {
-				pathFile << scanArray[i] << endl;
-			}
+			SymbolScan(imageWidth, imageHeight, blackAndWhite, scanArray, whitePixelCount);
 			getline(imageFile, imageName);
 			streamStrIterator << iterator;
 			strIterator = streamStrIterator.str();
+			pathFile.open("result/pathes/" + mode + imageName + strIterator + ".txt");
+			for (int i = 0; i < whitePixelCount; ++i) {
+				pathFile << scanArray[i] << endl;
+			}
 			fullNameResult = "result/images/" + mode + imageName + strIterator + ".bmp";
 			pmap.save_as_bmp(fullNameResult.c_str());
 			++iterator;
+			pathFile.close();
 		}
 		else break;
 	}
-	pathFile.close();
 	return iterator;
 }
 
@@ -259,7 +260,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		if(mode == "teach") { 
 			cout << "You choose Teach mode" << endl; 
 			cout << "Read folder..." << endl;
-			ReadFolder("teach/", "result/pathListTeach.txt");
+			ReadFolder(TEACH_FOLDER, "result/pathListTeach.txt");
 			cout << "Image processing... ";
 			imageCount = ImageProcessing("result/pathListTeach.txt", "teach/");
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
@@ -267,7 +268,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
 			cout << "Read folder..." << endl;
-			ReadFolder("recognition/", "result/pathListRecognition.txt");
+			ReadFolder(RECOGNITION_FOLDER, "result/pathListRecognition.txt");
 			cout << "Image processing... ";
 			imageCount = ImageProcessing("result/pathListRecognition.txt", "recognition/");
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
