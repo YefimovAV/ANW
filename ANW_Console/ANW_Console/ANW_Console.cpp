@@ -16,6 +16,12 @@ const int MAX_SYMBOL_COUNT = 3;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
+const string PATH_LIST_TEACH = "result/pathListTeach.txt";
+const string PATH_LIST_RECOGNITION = "result/pathListRecognition.txt";
+const string TEACH_MODE = "teach/";
+const string RECOGNITION_MODE = "recognition/";
+const string IMAGE_FOLDER = "result/images/";
+const string PATHES_FOLDER = "result/pathes/";
 
 void k_to_b(unsigned char* k, unsigned char* b,unsigned rowLength, int wI, int hI)
 {
@@ -234,11 +240,11 @@ int ImageProcessing (string filePath, string mode) {
 			getline(imageFile, imageName);
 			streamStrIterator << iterator;
 			strIterator = streamStrIterator.str();
-			pathFile.open("result/pathes/" + mode + imageName + strIterator + ".txt");
+			pathFile.open(PATHES_FOLDER + mode + imageName + strIterator + ".txt");
 			for (int i = 0; i < whitePixelCount; ++i) {
 				pathFile << scanArray[i] << endl;
 			}
-			fullNameResult = "result/images/" + mode + imageName + strIterator + ".bmp";
+			fullNameResult = IMAGE_FOLDER + mode + imageName + strIterator + ".bmp";
 			pmap.save_as_bmp(fullNameResult.c_str());
 			++iterator;
 			pathFile.close();
@@ -256,21 +262,21 @@ int _tmain(int argc, _TCHAR* argv[])
 	for(;;) {
 	if(answer == 'y') {
 		cout << "Choose a mode (teach/recognition): ";
-		cin >> mode;
+		cin >> mo-de;
 		if(mode == "teach") { 
 			cout << "You choose Teach mode" << endl; 
 			cout << "Read folder..." << endl;
-			ReadFolder(TEACH_FOLDER, "result/pathListTeach.txt");
+			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH);
 			cout << "Image processing... ";
-			imageCount = ImageProcessing("result/pathListTeach.txt", "teach/");
+			imageCount = ImageProcessing(PATH_LIST_TEACH, TEACH_MODE);
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
 			cout << "Read folder..." << endl;
-			ReadFolder(RECOGNITION_FOLDER, "result/pathListRecognition.txt");
+			ReadFolder(RECOGNITION_FOLDER, PATH_LIST_RECOGNITION);
 			cout << "Image processing... ";
-			imageCount = ImageProcessing("result/pathListRecognition.txt", "recognition/");
+			imageCount = ImageProcessing(PATH_LIST_RECOGNITION, RECOGNITION_MODE);
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
 		}
 		else cout << "Bad value, choose again" << endl;
