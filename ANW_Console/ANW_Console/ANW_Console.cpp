@@ -9,7 +9,10 @@
 #include "agg_win32_bmp.h"
 #include "NoiseEdit.h"
 #include "Skelet.h"
+#include "fft.h"
+#include <vector>
 #include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
 const int MAX_SYMBOL_COUNT = 3;
@@ -174,6 +177,123 @@ void SymbolScan(int iW, int iH, unsigned char *bw, int *scan, int &whitePixelCou
 	delete[] visited;
 }
 
+int ImageProcessing (string filePath, string mode) {
+	agg::pixel_map pmap;	
+	ifstream imageFile;
+	ifstream scanFile;
+	ofstream pathFile;
+	string imagePath;
+	string imageName;
+	string fullNameResult;
+	int iterator = 0;
+	int whitePixelCount;
+	string strIterator;
+	imageFile.open(filePath);
+	while(!imageFile.eof()) {
+		ostringstream streamStrIterator;
+		unsigned char *blackAndWhite = new unsigned char[MAX_IMAGE_SIZE];
+		int *scanArray = new int[2 * MAX_IMAGE_SIZE];
+		whitePixelCount = 0;
+		getline(imageFile, imagePath);
+		if(imagePath.length() > 0) {
+			pmap.load_from_bmp(imagePath.c_str());
+			unsigned char* imageBuffer = pmap.buf();
+			int imageWidth = pmap.width();
+			int imageHeight = pmap.height();
+			unsigned rowLength = pmap.calc_row_len(imageWidth,1);
+			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
+			blackAndWhite = NoiseEdit(blackAndWhite,imageWidth,imageHeight);
+			k_to_b(blackAndWhite, imageBuffer, rowLength, imageWidth, imageHeight);
+			skelet(imageBuffer, imageHeight, rowLength);
+			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
+			SymbolScan(imageWidth, imageHeight, blackAndWhite, scanArray, whitePixelCount);
+			getline(imageFile, imageName);
+			streamStrIterator << iterator;
+			strIterator = streamStrIterator.str();
+			pathFile.open(PATHES_FOLDER + mode + imageName + strIterator + ".txt");
+			for (int i = 0; i < whitePixelCount; ++i) {
+				pathFile << scanArray[i] << endl;
+			}
+			fullNameResult = IMAGE_FOLDER + mode + imageName + strIterator + ".bmp";
+			pmap.save_as_bmp(fullNameResult.c_str());
+			++iterator;
+			pathFile.close();
+		}
+		else {
+			delete[] blackAndWhite;
+			delete[] scanArray;
+			break;
+		}
+	}
+	return iterator;
+}
+
+vector<double> FFT(vector<double> dataDouble, int size) {
+	const double PI = 3.1415926535897932384626433832795;
+	ap::complex_1d_array complexData;
+	ap::complex_1d_array fftData;
+	//ap::complex complexExp;
+	//complexExp.x = 0.540302306;
+	//complexExp.y = 0.841470985;
+	vector<double> fftDoubleData;
+	complexData.setbounds(0, size);
+	fftData.setbounds(0, size);
+	for(int i = 0; i < size; ++i) {
+		complexData(i).x = dataDouble[2 * i];
+		complexData(i).y = dataDouble[2 * i + 1];
+	}
+	for(int i = 0; i < size; ++i)
+		for(int j = 0; j < size; ++j) {
+			//fftData(i) += complexData(j) * exp(2 * PI * i * j / size) * complexExp;
+			fftData(i).x += complexData(j).x * cos(-2 * PI * i * j / size) - complexData(j).y * sin(-2 * PI * i * j / size);	
+			fftData(i).y += complexData(j).x * sin(-2 * PI * i * j / size) + complexData(j).y * cos(-2 * PI * i * j / size);
+		}
+	for(int i = 0; i < size; ++i) {
+		fftDoubleData.push_back(fftData(i).x);
+		fftDoubleData.push_back(fftData(i).y);
+		cout << fftDoubleData[2 * i] << " " << fftDoubleData[2 * i + 1] << endl;
+	}
+	return fftDoubleData;
+}
+
+vector<double> ReadFile(string filePath, int &size) {
+	vector<double> dataDouble;
+	ifstream dataFile;
+	string thisData;
+	dataFile.open(filePath);
+	getline(dataFile, thisData);
+	while ( thisData.length() > 0) {
+		dataDouble.push_back(boost::lexical_cast<double>(thisData));
+		getline(dataFile, thisData);
+		++size;
+	}
+	dataFile.close();
+	return dataDouble;
+}
+
+void FormSignals(string coordinatesFolder) {
+	namespace fs = boost::filesystem;
+	string coordinatesSymbolPath;
+	vector<double> signals;
+	int whitePixelCount;
+	ap::complex_1d_array z; 
+	for (fs::directory_iterator it(coordinatesFolder), end; it != end; ++it) {
+		if (it->path().extension() == ".txt") {
+			int iterator = 0;
+			whitePixelCount = 0;
+			coordinatesSymbolPath = "";
+			while(it->path().string()[iterator]) {
+				if (it->path().string()[iterator] == '"') continue;
+				string temp = string(&it->path().string()[iterator],0,1);
+				coordinatesSymbolPath += temp;
+				++iterator;
+			}
+			signals = ReadFile(coordinatesSymbolPath, whitePixelCount);
+			signals = FFT(signals, whitePixelCount / 2);
+		}		
+	}
+}
+
 void ReadFolder(string loadPath, string savePath) {
 	namespace fs = boost::filesystem;
 	ofstream pathList;
@@ -206,59 +326,6 @@ void ReadFolder(string loadPath, string savePath) {
 	pathList.close();
 }
 
-int ImageProcessing (string filePath, string mode) {
-	agg::pixel_map pmap;	
-	ifstream imageFile;
-	ifstream scanFile;
-	ofstream pathFile;
-	string imagePath;
-	string imageName;
-	string fullNameResult;
-	int iterator = 0;
-	int whitePixelCount;
-	string strIterator;
-	imageFile.open(filePath);
-	cout << "Scanning images: ";
-	while(!imageFile.eof()) {
-		ostringstream streamStrIterator;
-		unsigned char *blackAndWhite = new unsigned char[MAX_IMAGE_SIZE];
-		int *scanArray = new int[2 * MAX_IMAGE_SIZE];
-		whitePixelCount = 0;
-		getline(imageFile, imagePath);
-		if(imagePath.length() > 0) {
-			pmap.load_from_bmp(imagePath.c_str());
-			unsigned char* imageBuffer = pmap.buf();
-			int imageWidth = pmap.width();
-			int imageHeight = pmap.height();
-			unsigned rowLength = pmap.calc_row_len(imageWidth,1);
-			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
-			blackAndWhite = NoiseEdit(blackAndWhite,imageWidth,imageHeight);
-			k_to_b(blackAndWhite, imageBuffer, rowLength, imageWidth, imageHeight);
-			skelet(imageBuffer, imageHeight, rowLength);
-			b_to_k(imageBuffer, blackAndWhite, rowLength, imageWidth, imageHeight);
-			SymbolScan(imageWidth, imageHeight, blackAndWhite, scanArray, whitePixelCount);
-			getline(imageFile, imageName);
-			streamStrIterator << iterator;
-			strIterator = streamStrIterator.str();
-			pathFile.open(PATHES_FOLDER + mode + imageName + strIterator + ".txt");
-			for (int i = 0; i < whitePixelCount; ++i) {
-				pathFile << scanArray[i] << endl;
-			}
-			fullNameResult = IMAGE_FOLDER + mode + imageName + strIterator + ".bmp";
-			pmap.save_as_bmp(fullNameResult.c_str());
-			++iterator;
-			pathFile.close();
-		}
-		else {
-			cout << "ready" << endl;
-			delete[] blackAndWhite;
-			delete[] scanArray;
-			break;
-		}
-	}
-	return iterator;
-}
-
 int _tmain(int argc, _TCHAR* argv[])
 {
 	string mode;
@@ -272,17 +339,18 @@ int _tmain(int argc, _TCHAR* argv[])
 			cout << "You choose Teach mode" << endl; 
 			cout << "Read folder..." << endl;
 			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH);
-			cout << "Image processing... " << endl;
+			cout << "Image processing... ";
 			imageCount = ImageProcessing(PATH_LIST_TEACH, TEACH_MODE);
-			cout << "...ready" <<endl << "Processed " << imageCount << " images." << endl;
+			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
+			FormSignals("result/pathes/teach/");
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
 			cout << "Read folder..." << endl;
 			ReadFolder(RECOGNITION_FOLDER, PATH_LIST_RECOGNITION);
-			cout << "Image processing... " << endl;
+			cout << "Image processing... ";
 			imageCount = ImageProcessing(PATH_LIST_RECOGNITION, RECOGNITION_MODE);
-			cout << "...ready" <<endl << "Processed " << imageCount << " images." << endl;
+			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
 		}
 		else cout << "Bad value, choose again" << endl;
 	}
