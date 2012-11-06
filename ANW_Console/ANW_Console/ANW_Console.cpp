@@ -232,9 +232,6 @@ vector<double> FFT(vector<double> dataDouble, int size) {
 	const double PI = 3.1415926535897932384626433832795;
 	ap::complex_1d_array complexData;
 	ap::complex_1d_array fftData;
-	//ap::complex complexExp;
-	//complexExp.x = 0.540302306;
-	//complexExp.y = 0.841470985;
 	vector<double> fftDoubleData;
 	complexData.setbounds(0, size);
 	fftData.setbounds(0, size);
@@ -244,14 +241,13 @@ vector<double> FFT(vector<double> dataDouble, int size) {
 	}
 	for(int i = 0; i < size; ++i)
 		for(int j = 0; j < size; ++j) {
-			//fftData(i) += complexData(j) * exp(2 * PI * i * j / size) * complexExp;
 			fftData(i).x += complexData(j).x * cos(-2 * PI * i * j / size) - complexData(j).y * sin(-2 * PI * i * j / size);	
 			fftData(i).y += complexData(j).x * sin(-2 * PI * i * j / size) + complexData(j).y * cos(-2 * PI * i * j / size);
 		}
 	for(int i = 0; i < size; ++i) {
 		fftDoubleData.push_back(fftData(i).x);
 		fftDoubleData.push_back(fftData(i).y);
-		cout << fftDoubleData[2 * i] << " " << fftDoubleData[2 * i + 1] << endl;
+		//cout << fftDoubleData[2 * i] << " " << fftDoubleData[2 * i + 1] << endl;
 	}
 	return fftDoubleData;
 }
