@@ -17,6 +17,7 @@
 using namespace std;
 const int MAX_SYMBOL_COUNT = 3;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
+const int SIGNAL_COUNT = 40;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
 const string PATH_LIST_TEACH = "result/pathListTeach.txt";
@@ -25,6 +26,7 @@ const string TEACH_MODE = "teach/";
 const string RECOGNITION_MODE = "recognition/";
 const string IMAGE_FOLDER = "result/images/";
 const string PATHES_FOLDER = "result/pathes/";
+const string FFT_FOLDER = "result/fft/";
 
 void k_to_b(unsigned char* k, unsigned char* b,unsigned rowLength, int wI, int hI)
 {
@@ -55,10 +57,10 @@ void b_to_k(unsigned char* b, unsigned char* k,unsigned rowLength, int wI, int h
 		}
 	}
 }
-int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex) {
+int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, bool &circle) {
 	int neighborCount;
 	for (int i = 0; i < iW; ++i) 
-		for (int j = iH - 1; j > 0; --j) {
+		for (int j = iH - 1; j >= 0; --j) {
 			if (bw[i + j * iW] == 1) {
 				neighborCount = 0;
 				currentIndex = i + j * iW;
@@ -73,13 +75,14 @@ int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int current
 				if (neighborCount > 2) return currentIndex;
 			}		
 		}
+	circle = false;
 	return currentIndex;	
 }
 
-int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, int *scan, int &iterator) {
+int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, int *scan, int &iterator, bool circle) {
 	int nextIndex;
 	nextIndex = currentIndex - iW;
-	if (iterator == 0) visited[currentIndex] = 0;
+	if (iterator == 0 && circle == true) visited[currentIndex] = 0;
 	else visited[currentIndex] = 1;
 	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
@@ -88,7 +91,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
 	else nextIndex = currentIndex - iW + 1;
 	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
@@ -98,7 +101,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
 	else nextIndex = currentIndex + 1;
 	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
@@ -108,7 +111,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
 	else nextIndex = currentIndex + iW + 1;
 	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
@@ -118,7 +121,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
 	else nextIndex = currentIndex + iW;
 	if (nextIndex < iW * iH && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
@@ -128,7 +131,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
 	else nextIndex = currentIndex + iW - 1;
 	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
@@ -138,7 +141,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
 	else nextIndex = currentIndex - 1;
 	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
@@ -148,7 +151,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
 	else nextIndex = currentIndex - iW - 1;
 	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
@@ -158,22 +161,23 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		nextIndex = BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator);
+		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
-	else return currentIndex;
+	else return 0;
 }
 
 void SymbolScan(int iW, int iH, unsigned char *bw, int *scan, int &whitePixelCount) {
 	int startIndex;
 	int firstNodal;
+	bool circle = true;
 	bool *visited = new bool [MAX_IMAGE_SIZE];
 	for (int i = 0; i < iW * iH; ++i)
 		visited[i] = 0;
 	for (int i = 0; i < iW; ++i) 
 		for (int j = iH - 1; j > 0; --j)	
 			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; break; }
-	firstNodal = FindFirstNodal(iW, iH, bw, visited, startIndex);
-	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, whitePixelCount);
+	firstNodal = FindFirstNodal(iW, iH, bw, visited, startIndex, circle);
+	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, whitePixelCount, circle);
 	delete[] visited;
 }
 
@@ -229,7 +233,6 @@ int ImageProcessing (string filePath, string mode) {
 }
 
 vector<double> FFT(vector<double> dataDouble, int size) {
-	const double PI = 3.1415926535897932384626433832795;
 	ap::complex_1d_array complexData;
 	ap::complex_1d_array fftData;
 	vector<double> fftDoubleData;
@@ -239,15 +242,17 @@ vector<double> FFT(vector<double> dataDouble, int size) {
 		complexData(i).x = dataDouble[2 * i];
 		complexData(i).y = dataDouble[2 * i + 1];
 	}
-	for(int i = 0; i < size; ++i)
+	for(int i = 1; i < size; ++i)
 		for(int j = 0; j < size; ++j) {
-			fftData(i).x += complexData(j).x * cos(-2 * PI * i * j / size) - complexData(j).y * sin(-2 * PI * i * j / size);	
-			fftData(i).y += complexData(j).x * sin(-2 * PI * i * j / size) + complexData(j).y * cos(-2 * PI * i * j / size);
+			fftData(i).x += complexData(j).x * cos(-2 * ap::pi() * i * j / size) - complexData(j).y * sin(-2 * ap::pi() * i * j / size);	
+			fftData(i).y += complexData(j).x * sin(-2 * ap::pi() * i * j / size) + complexData(j).y * cos(-2 * ap::pi() * i * j / size);
 		}
+	fftData(0) = 0;
+	double scalingFactor = ap::sqr(pow(ap::abscomplex(fftData(1)), 2) + pow(ap::abscomplex(fftData(size)), 2));
 	for(int i = 0; i < size; ++i) {
+		fftData(i) /= scalingFactor;
 		fftDoubleData.push_back(fftData(i).x);
 		fftDoubleData.push_back(fftData(i).y);
-		//cout << fftDoubleData[2 * i] << " " << fftDoubleData[2 * i + 1] << endl;
 	}
 	return fftDoubleData;
 }
@@ -267,9 +272,11 @@ vector<double> ReadFile(string filePath, int &size) {
 	return dataDouble;
 }
 
-void FormSignals(string coordinatesFolder) {
+void FormSignals(string coordinatesFolder, string fftFolder, string mode) {
 	namespace fs = boost::filesystem;
 	string coordinatesSymbolPath;
+	string imageName;
+	ofstream fftFile;
 	vector<double> signals;
 	int whitePixelCount;
 	ap::complex_1d_array z; 
@@ -286,7 +293,13 @@ void FormSignals(string coordinatesFolder) {
 			}
 			signals = ReadFile(coordinatesSymbolPath, whitePixelCount);
 			signals = FFT(signals, whitePixelCount / 2);
-		}		
+			imageName = it->path().filename().string();
+			fftFile.open(fftFolder + mode + imageName);
+			for (int i = 1; i < whitePixelCount; ++i) {
+				fftFile << signals[i] << endl;
+			}
+			fftFile.close();
+		}	
 	}
 }
 
@@ -337,8 +350,9 @@ int _tmain(int argc, _TCHAR* argv[])
 			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH);
 			cout << "Image processing... ";
 			imageCount = ImageProcessing(PATH_LIST_TEACH, TEACH_MODE);
-			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
-			FormSignals("result/pathes/teach/");
+			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl << "Handling coordinates...";
+			FormSignals(PATHES_FOLDER + TEACH_FOLDER, FFT_FOLDER, TEACH_MODE);
+			cout << "ready" << endl << "For training used " << SIGNAL_COUNT << " signals." <<endl;
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
