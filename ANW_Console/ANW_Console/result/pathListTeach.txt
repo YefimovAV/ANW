@@ -10,7 +10,7 @@ teach\g01.bmp
 g
 teach\g10.bmp
 g
-teach\i03.bmp
+teach\i05.bmp
 i
 teach\j07.bmp
 j

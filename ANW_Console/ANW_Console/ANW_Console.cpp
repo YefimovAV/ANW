@@ -17,7 +17,7 @@
 using namespace std;
 const int MAX_SYMBOL_COUNT = 3;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
-const int SIGNAL_COUNT = 40;
+const int SIGNAL_COUNT = 20;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
 const string PATH_LIST_TEACH = "result/pathListTeach.txt";
@@ -169,13 +169,17 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 void SymbolScan(int iW, int iH, unsigned char *bw, int *scan, int &whitePixelCount) {
 	int startIndex;
 	int firstNodal;
+	int counter = 0;
 	bool circle = true;
 	bool *visited = new bool [MAX_IMAGE_SIZE];
 	for (int i = 0; i < iW * iH; ++i)
 		visited[i] = 0;
+	for (int i = 0; i < iW * iH; ++i)
+		if (bw[i] == 1) { ++counter;}
+	cout << counter << endl;
 	for (int i = 0; i < iW; ++i) 
 		for (int j = iH - 1; j > 0; --j)	
-			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; break; }
+			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; cout << i << "   " << j << endl; i = iW; break; }				//костыль i = iW для выхода из внешнего цикла, не goto же использовать.
 	firstNodal = FindFirstNodal(iW, iH, bw, visited, startIndex, circle);
 	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, whitePixelCount, circle);
 	delete[] visited;
@@ -295,8 +299,11 @@ void FormSignals(string coordinatesFolder, string fftFolder, string mode) {
 			signals = FFT(signals, whitePixelCount / 2);
 			imageName = it->path().filename().string();
 			fftFile.open(fftFolder + mode + imageName);
-			for (int i = 1; i < whitePixelCount; ++i) {
-				fftFile << signals[i] << endl;
+			if (whitePixelCount >= 4 * SIGNAL_COUNT) {
+				for (int i = 3; i < 3 + 2 * SIGNAL_COUNT; ++i)											// Сигналы формируются начиная с первого элемента ряда Фурье, а не с нулевого.
+					fftFile << signals[i] << endl;
+				for (int i = whitePixelCount - 1; i > whitePixelCount - 1 - 2 * SIGNAL_COUNT; --i)		// В обратную сторону сигналы формируются начиная с последнего элемента ряда Фурье
+					fftFile << signals[i] << endl;
 			}
 			fftFile.close();
 		}	
@@ -352,7 +359,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			imageCount = ImageProcessing(PATH_LIST_TEACH, TEACH_MODE);
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl << "Handling coordinates...";
 			FormSignals(PATHES_FOLDER + TEACH_FOLDER, FFT_FOLDER, TEACH_MODE);
-			cout << "ready" << endl << "For training used " << SIGNAL_COUNT << " signals." <<endl;
+			cout << "ready" << endl << "For training used " << 2 * SIGNAL_COUNT << " signals." <<endl;
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
