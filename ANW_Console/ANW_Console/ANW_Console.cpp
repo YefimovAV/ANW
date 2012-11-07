@@ -82,8 +82,14 @@ int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int current
 int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, int *scan, int &iterator, bool circle) {
 	int nextIndex;
 	nextIndex = currentIndex - iW;
-	if (iterator == 0 && circle == true) visited[currentIndex] = 0;
-	else visited[currentIndex] = 1;
+	if (circle == true) iterator == 0 ? visited[currentIndex] = 0 : visited[currentIndex] = 1;
+	else if (iterator == 0) {
+		visited[currentIndex] = 1;
+		scan[iterator] = currentIndex % iW;
+		++iterator;
+		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
+		++iterator;
+	}
 	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
@@ -93,7 +99,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
-	else nextIndex = currentIndex - iW + 1;
+	nextIndex = currentIndex - iW + 1;
 	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
@@ -103,7 +109,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
-	else nextIndex = currentIndex + 1;
+	nextIndex = currentIndex + 1;
 	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
@@ -113,7 +119,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
-	else nextIndex = currentIndex + iW + 1;
+	nextIndex = currentIndex + iW + 1;
 	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
@@ -123,7 +129,7 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
-	else nextIndex = currentIndex + iW;
+	nextIndex = currentIndex + iW;
 	if (nextIndex < iW * iH && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
@@ -133,8 +139,8 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
-	else nextIndex = currentIndex + iW - 1;
-	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+	nextIndex = currentIndex + iW - 1;
+	if (nextIndex < iW * iH && currentIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
@@ -143,8 +149,8 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
-	else nextIndex = currentIndex - 1;
-	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+	nextIndex = currentIndex - 1;
+	if (nextIndex > 0 && currentIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
@@ -153,8 +159,8 @@ int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int current
 		++iterator;
 		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
 	}
-	else nextIndex = currentIndex - iW - 1;
-	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
+	nextIndex = currentIndex - iW - 1;
+	if (nextIndex > 0 && currentIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
 		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
