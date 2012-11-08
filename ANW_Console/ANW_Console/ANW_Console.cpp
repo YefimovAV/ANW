@@ -57,7 +57,7 @@ void b_to_k(unsigned char* b, unsigned char* k,unsigned rowLength, int wI, int h
 		}
 	}
 }
-int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, bool &circle) {
+int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex) {
 	int neighborCount;
 	for (int i = 0; i < iW; ++i) 
 		for (int j = iH - 1; j >= 0; --j) {
@@ -75,110 +75,83 @@ int FindFirstNodal(int iW, int iH, unsigned char *bw, bool *visited, int current
 				if (neighborCount > 2) return currentIndex;
 			}		
 		}
-	circle = false;
 	return currentIndex;	
 }
 
-int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, int *scan, int &iterator, bool circle) {
+int BuildScanArray(int iW, int iH, unsigned char *bw, bool *visited, int currentIndex, int *scan, int &iterator) {
 	int nextIndex;
 	nextIndex = currentIndex - iW;
-	cout << currentIndex << endl;
-	/*if (circle == true) iterator == 0 ? visited[currentIndex] = 0 : visited[currentIndex] = 1;
-	else if (iterator == 0) {
-		visited[currentIndex] = 1;
-		scan[iterator] = currentIndex % iW;
-		++iterator;
-		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
-		++iterator;
-	}*/
 	if (nextIndex > 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
-		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		cout << currentIndex << endl;
-		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
+		BuildScanArray(iW, iH, bw, visited, nextIndex, scan, iterator);
 	}
 	nextIndex = currentIndex - iW + 1;
 	if (nextIndex > 0 && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
-		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		cout << currentIndex << endl;
-		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
+		BuildScanArray(iW, iH, bw, visited, nextIndex, scan, iterator);
 	}
 	nextIndex = currentIndex + 1;
 	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
-		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		cout << currentIndex << endl;
-		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
+		BuildScanArray(iW, iH, bw, visited, nextIndex, scan, iterator);
 	}
 	nextIndex = currentIndex + iW + 1;
 	if (nextIndex < iW * iH && nextIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
-		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		cout << currentIndex << endl;
-		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
+		BuildScanArray(iW, iH, bw, visited, nextIndex, scan, iterator);
 	}
 	nextIndex = currentIndex + iW;
 	if (nextIndex < iW * iH && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
-		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		cout << currentIndex << endl;
-		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
+		BuildScanArray(iW, iH, bw, visited, nextIndex, scan, iterator);
 	}
 	nextIndex = currentIndex + iW - 1;
 	if (nextIndex < iW * iH && currentIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
-		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		cout << currentIndex << endl;
-		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
+		BuildScanArray(iW, iH, bw, visited, nextIndex, scan, iterator);
 	}
 	nextIndex = currentIndex - 1;
 	if (nextIndex > 0 && currentIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
-		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		cout << currentIndex << endl;
-		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
+		BuildScanArray(iW, iH, bw, visited, nextIndex, scan, iterator);
 	}
 	nextIndex = currentIndex - iW - 1;
 	if (nextIndex > 0 && currentIndex % iW != 0 && bw[nextIndex] == 1 && visited[nextIndex] == 0) {
 		visited[nextIndex] = 1;
-		currentIndex = nextIndex;
 		scan[iterator] = currentIndex % iW;
 		++iterator;
 		scan[iterator] = (currentIndex - currentIndex % iW) / iW;
 		++iterator;
-		cout << currentIndex << endl;
-		BuildScanArray(iW, iH, bw, visited, currentIndex, scan, iterator, circle);
+		BuildScanArray(iW, iH, bw, visited, nextIndex, scan, iterator);
 	}
-	cout << currentIndex << endl;
 	return 0;
 }
 
@@ -186,23 +159,21 @@ void SymbolScan(int iW, int iH, unsigned char *bw, int *scan, int &whitePixelCou
 	int startIndex;
 	int firstNodal;
 	int counter = 0;
-	bool circle = true;
 	bool *visited = new bool [MAX_IMAGE_SIZE];
 	for (int i = 0; i < iW * iH; ++i)
 		visited[i] = 0;
 	for (int i = 0; i < iW * iH; ++i)
 		if (bw[i] == 1) { ++counter;}
-	cout << counter << endl;
 	for (int i = 0; i < iW; ++i) 
 		for (int j = iH - 1; j > 0; --j)	
-			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; cout << i << "   " << j << endl; i = iW; break; }				//костыль i = iW для выхода из внешнего цикла, не goto же использовать.
-	firstNodal = FindFirstNodal(iW, iH, bw, visited, startIndex, circle);
+			if (bw[i + j * iW] == 1) { startIndex = i + j * iW; i = iW; break; }				//костыль i = iW для выхода из внешнего цикла, не goto же использовать.
+	firstNodal = FindFirstNodal(iW, iH, bw, visited, startIndex);
 	visited[firstNodal] = 1;
 	scan[whitePixelCount] = firstNodal % iW;
 	++whitePixelCount;
 	scan[whitePixelCount] = (firstNodal - firstNodal % iW) / iW;
 	++whitePixelCount;
-	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, whitePixelCount, circle);
+	BuildScanArray(iW, iH, bw, visited, firstNodal, scan, whitePixelCount);
 	delete[] visited;
 }
 
