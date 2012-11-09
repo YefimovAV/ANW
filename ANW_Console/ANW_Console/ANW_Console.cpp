@@ -244,7 +244,7 @@ vector<double> FFT(vector<double> dataDouble, int size) {
 			fftData(i).y += complexData(j).x * sin(-2 * ap::pi() * i * j / size) + complexData(j).y * cos(-2 * ap::pi() * i * j / size);
 		}
 	fftData(0) = 0;
-	double scalingFactor = ap::sqr(pow(ap::abscomplex(fftData(1)), 2) + pow(ap::abscomplex(fftData(size)), 2));
+	double scalingFactor = sqrt(pow(ap::abscomplex(fftData(1)), 2) + pow(ap::abscomplex(fftData(size - 1)), 2));
 	for(int i = 0; i < size; ++i) {
 		fftData(i) /= scalingFactor;
 		fftDoubleData.push_back(fftData(i).x);
