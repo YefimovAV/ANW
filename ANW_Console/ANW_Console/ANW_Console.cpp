@@ -15,9 +15,11 @@
 #include <boost/lexical_cast.hpp>
 
 using namespace std;
-const int MAX_SYMBOL_COUNT = 3;
+const int SYMBOL_COUNT = 33;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
 const int SIGNAL_COUNT = 20;
+const int NEURAL_COUNT = 80;
+const double LARGE_RAND = 1000000;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
 const string PATH_LIST_TEACH = "result/pathListTeach.txt";
@@ -27,6 +29,78 @@ const string RECOGNITION_MODE = "recognition/";
 const string IMAGE_FOLDER = "result/images/";
 const string PATHES_FOLDER = "result/pathes/";
 const string FFT_FOLDER = "result/fft/";
+const string MATRIX_FOLDER = "result/matrix/";
+
+class NeuralWeb {
+public:
+	vector<double> _firstLayer;
+	vector<double> _secondLayer;
+	vector<double> _thirdLayer;
+	vector<double> _standard;
+	unsigned _signalCount;
+	unsigned _symbolCount;
+	unsigned _neuralCount;
+	double bettaParam;
+	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 2, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount) {
+		for(int i = 0; i < signalCount * neuralCount; ++i)
+			_firstLayer.push_back(rand() / LARGE_RAND);
+		for(int i = 0; i < neuralCount * neuralCount; ++i)
+			_secondLayer.push_back(rand() / LARGE_RAND);
+		for(int i = 0; i < neuralCount * symbolCount; ++i)
+			_thirdLayer.push_back(rand() / LARGE_RAND);
+		for(int i = 0; i < symbolCount; ++i)
+			_standard.push_back(NULL);
+		bettaParam = 1;
+	}
+
+	void SaveMatrix() {
+		ofstream saveStream;
+		saveStream.open(MATRIX_FOLDER + "firstLayer.txt");
+		for(int i = 0; i < _firstLayer.size(); ++i)
+			saveStream << _firstLayer[i] << endl;
+		saveStream.close();
+		saveStream.open(MATRIX_FOLDER + "secondLayer.txt");
+		for(int i = 0; i < _secondLayer.size(); ++i)
+			saveStream << _secondLayer[i] << endl;
+		saveStream.close();
+		saveStream.open(MATRIX_FOLDER + "thirdLayer.txt");
+		for(int i = 0; i < _thirdLayer.size(); ++i)
+			saveStream << _thirdLayer[i] << endl;
+		saveStream.close();
+	}
+
+	void LoadMatrix() {
+		ifstream loadStream;
+		loadStream.open(MATRIX_FOLDER + "firstLayer.txt");
+		for(int i = 0; i < _firstLayer.size(); ++i)
+			loadStream >> _firstLayer[i];
+		loadStream.close();
+		loadStream.open(MATRIX_FOLDER + "secondLayer.txt");
+		for(int i = 0; i < _secondLayer.size(); ++i)
+			loadStream >> _secondLayer[i];
+		loadStream.close();
+		loadStream.open(MATRIX_FOLDER + "thirdLayer.txt");
+		for(int i = 0; i < _thirdLayer.size(); ++i)
+			loadStream >> _thirdLayer[i];
+		loadStream.close();
+	}
+	
+	double sigmoidalFunction(double x) {
+		return 1 / (1 + exp(bettaParam * x));	
+	}
+
+	double diffSigmoidalFunction(double x) {
+		return bettaParam * sigmoidalFunction(x) * (1 - sigmoidalFunction(x));
+	}
+
+	double& getNeural(vector<double> layer, int layerWidth, int i, int j) {
+		return layer[i + j * layerWidth];
+	}
+
+	bool teach() {
+
+	}
+};
 
 void k_to_b(unsigned char* k, unsigned char* b,unsigned rowLength, int wI, int hI)
 {
@@ -352,6 +426,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl << "Handling coordinates...";
 			FormSignals(PATHES_FOLDER + TEACH_FOLDER, FFT_FOLDER, TEACH_MODE);
 			cout << "ready" << endl << "For training used " << 2 * SIGNAL_COUNT << " signals." <<endl;
+			NeuralWeb NW;
+			NW.SaveMatrix();
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
