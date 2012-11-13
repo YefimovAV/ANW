@@ -41,6 +41,8 @@ public:
 	unsigned _symbolCount;
 	unsigned _neuralCount;
 	double bettaParam;
+	double thresholdRecognizeValue;
+	double thresholdTeachValue;
 	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 2, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount) {
 		for(int i = 0; i < signalCount * neuralCount; ++i)
 			_firstLayer.push_back(rand() / LARGE_RAND);
@@ -51,6 +53,8 @@ public:
 		for(int i = 0; i < symbolCount; ++i)
 			_standard.push_back(NULL);
 		bettaParam = 1;
+		thresholdRecognizeValue = 0.7;
+		thresholdTeachValue = 0.000001;
 	}
 
 	void SaveMatrix() {
@@ -97,8 +101,38 @@ public:
 		return layer[i + j * layerWidth];
 	}
 
-	bool teach() {
+	vector<double> NeuralWebFunction(vector<double> signalArray, vector<double> layer, int layerWidth) {
+		vector<double> result;
+		double temp;
+		for (int i = 0; layer.size() / layerWidth; ++i) {
+			temp = 0;
+			for (int j = 0; signalArray.size(); ++j)
+				temp += getNeural(layer, layerWidth,j,i) * signalArray[j]; 
+			result.push_back(sigmoidalFunction(temp));
+		}
+	}
 
+	bool teach(int currentSymbol, vector<double> signalArray) {
+		vector<double> temp;
+		for (int i = 0; i < _symbolCount; ++i) {
+			if(i == currentSymbol) _standard[i] = 1;
+			else _standard[i] = 0;
+		}
+	}
+
+	bool recognize(vector<double> signalArray, int resultSymbolNumber) {
+		vector<double> temp;
+		double maxResultValue = 0;
+		bool result = false;
+		temp = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
+		temp = NeuralWebFunction(temp, _secondLayer, _neuralCount);
+		temp = NeuralWebFunction(temp, _thirdLayer, _symbolCount);
+		for(int i = 0; i < temp.size(); ++i) {
+			if (maxResultValue < temp[i] && maxResultValue >= thresholdRecognizeValue) {
+				maxResultValue = temp[i];
+				result = true;
+			}
+		}
 	}
 };
 
