@@ -114,16 +114,26 @@ public:
 
 	bool teach(int currentSymbol, vector<double> signalArray) {
 		vector<double> temp;
+		int resultSymbolNumber;
+		bool currentResult;
+		bool commonResult = true;
 		for (int i = 0; i < _symbolCount; ++i) {
 			if(i == currentSymbol) _standard[i] = 1;
 			else _standard[i] = 0;
 		}
+		//recognize(signalArray, resultSymbolNumber);
+		//if (resultSymbolNumber == currentSymbol) currentResult = true;
+		//else {
+		//	currentResult = false;
+		//	commonResult = currentResult;
+		//}
 	}
 
-	bool recognize(vector<double> signalArray, int resultSymbolNumber) {
+	bool recognize(vector<double> &signalArray, int &resultSymbolNumber) {
 		vector<double> temp;
 		double maxResultValue = 0;
 		bool result = false;
+		resultSymbolNumber = -1;
 		temp = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
 		temp = NeuralWebFunction(temp, _secondLayer, _neuralCount);
 		temp = NeuralWebFunction(temp, _thirdLayer, _symbolCount);
@@ -131,10 +141,50 @@ public:
 			if (maxResultValue < temp[i] && maxResultValue >= thresholdRecognizeValue) {
 				maxResultValue = temp[i];
 				result = true;
+				resultSymbolNumber = i;
 			}
 		}
+		return result;
 	}
 };
+
+int TransformLexicalToNumericValue (string symbol) {
+	int numericValue;
+	if(symbol == "a") numericValue = 0; else
+	if(symbol == "b") numericValue = 1; else
+	if(symbol == "v") numericValue = 2; else
+	if(symbol == "g") numericValue = 3; else
+	if(symbol == "d") numericValue = 4; else
+	if(symbol == "e") numericValue = 5; else
+	if(symbol == "j") numericValue = 6; else
+	if(symbol == "z") numericValue = 7; else
+	if(symbol == "i") numericValue = 8; else
+	if(symbol == "ij") numericValue = 9; else
+	if(symbol == "k") numericValue = 10; else
+	if(symbol == "l") numericValue = 11; else
+	if(symbol == "m") numericValue = 12; else
+	if(symbol == "n") numericValue = 13; else
+	if(symbol == "o") numericValue = 14; else
+	if(symbol == "p") numericValue = 15; else
+	if(symbol == "r") numericValue = 16; else
+	if(symbol == "s") numericValue = 17; else
+	if(symbol == "t") numericValue = 18; else
+	if(symbol == "y") numericValue = 19; else
+	if(symbol == "f") numericValue = 20; else
+	if(symbol == "x") numericValue = 21; else
+	if(symbol == "c") numericValue = 22; else
+	if(symbol == "ch") numericValue = 23; else
+	if(symbol == "sh") numericValue = 24; else
+	if(symbol == "sch") numericValue = 25; else
+	if(symbol == "tz") numericValue = 26; else
+	if(symbol == "bI") numericValue = 27; else
+	if(symbol == "mz") numericValue = 28; else
+	if(symbol == "ea") numericValue = 29; else
+	if(symbol == "u") numericValue = 30; else
+	if(symbol == "ya") numericValue = 31; else
+	return -1;
+	return numericValue;
+}
 
 void k_to_b(unsigned char* k, unsigned char* b,unsigned rowLength, int wI, int hI)
 {
@@ -440,6 +490,49 @@ void ReadFolder(string loadPath, string savePath) {
 		}
 	}
 	pathList.close();
+}
+
+bool NeuralWebTeach(string fftFolder, string pathListTeach) {
+	namespace fs = boost::filesystem;
+	NeuralWeb ThreeLayerPerceptron;
+	int fileCount = 0;
+	int recognizeCount = 0;
+	int resultSymbolNumber;
+	int factSymbolNumber;
+	string factSymbolValue;
+	string currentLexicalSymbol;
+	vector<double> signals;
+	string fftSymbolPath;
+	for (fs::directory_iterator it(fftFolder), end; it != end; ++it)
+			if (it->path().extension() == ".txt") 
+				++fileCount;
+	for(;;) {		
+		for (fs::directory_iterator it(fftFolder), end; it != end; ++it)
+			if (it->path().extension() == ".txt") {
+				int iterator = 0;
+				int tempSize = 0;
+				fftSymbolPath = "";
+				while(it->path().string()[iterator]) {
+					if (it->path().string()[iterator] == '"') continue;
+					string temp = string(&it->path().string()[iterator],0,1);
+					fftSymbolPath += temp;
+					++iterator;
+				}
+				signals = ReadFile(fftSymbolPath, tempSize);
+			ifstream factSymbolStream;
+			factSymbolStream.open(pathListTeach);
+			getline(factSymbolStream, factSymbolValue);
+			getline(factSymbolStream, factSymbolValue);
+			factSymbolNumber = boost::lexical_cast<double>(factSymbolValue);
+			if (ThreeLayerPerceptron.recognize(signals, resultSymbolNumber))
+				if (resultSymbolNumber == factSymbolNumber)
+					++recognizeCount;
+			//NeuralWeb.teach function here;
+			}
+			if (recognizeCount == fileCount)
+				return true;
+			else continue;
+	}
 }
 
 int _tmain(int argc, _TCHAR* argv[])
