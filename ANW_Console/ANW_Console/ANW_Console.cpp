@@ -20,6 +20,9 @@ const int MAX_IMAGE_SIZE = 1000 * 1000;
 const int SIGNAL_COUNT = 20;
 const int NEURAL_COUNT = 80;
 const double LARGE_RAND = 1000000;
+const double TEACH_FACTOR = 0.01;
+const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
+const double THRESHOLD_TEACH_VALUE = 0.01;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
 const string PATH_LIST_TEACH = "result/pathListTeach.txt";
@@ -43,6 +46,7 @@ public:
 	double bettaParam;
 	double thresholdRecognizeValue;
 	double thresholdTeachValue;
+	double teachFactor;
 	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 2, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount) {
 		for(int i = 0; i < signalCount * neuralCount; ++i)
 			_firstLayer.push_back(rand() / LARGE_RAND);
@@ -53,8 +57,9 @@ public:
 		for(int i = 0; i < symbolCount; ++i)
 			_standard.push_back(NULL);
 		bettaParam = 1;
-		thresholdRecognizeValue = 0.7;
-		thresholdTeachValue = 0.000001;
+		thresholdRecognizeValue = THRESHOLD_RECOGNIZE_VALUE;
+		thresholdTeachValue = THRESHOLD_TEACH_VALUE;
+		teachFactor = TEACH_FACTOR;
 	}
 
 	void SaveMatrix() {
@@ -89,15 +94,15 @@ public:
 		loadStream.close();
 	}
 	
-	double sigmoidalFunction(double x) {
+	double SigmoidalFunction(double x) {
 		return 1 / (1 + exp(bettaParam * x));	
 	}
 
-	double diffSigmoidalFunction(double x) {
-		return bettaParam * sigmoidalFunction(x) * (1 - sigmoidalFunction(x));
+	double DiffSigmoidalFunction(double x) {
+		return bettaParam * SigmoidalFunction(x) * (1 - SigmoidalFunction(x));
 	}
 
-	double& getNeural(vector<double> layer, int layerWidth, int i, int j) {
+	double& GetNeural(vector<double> layer, int layerWidth, int i, int j) {
 		return layer[i + j * layerWidth];
 	}
 
@@ -107,12 +112,12 @@ public:
 		for (int i = 0; layer.size() / layerWidth; ++i) {
 			temp = 0;
 			for (int j = 0; signalArray.size(); ++j)
-				temp += getNeural(layer, layerWidth,j,i) * signalArray[j]; 
-			result.push_back(sigmoidalFunction(temp));
+				temp += GetNeural(layer, layerWidth,j,i) * signalArray[j]; 
+			result.push_back(SigmoidalFunction(temp));
 		}
 	}
 
-	bool teach(int currentSymbol, vector<double> signalArray) {
+	bool Teach(int currentSymbol, vector<double> signalArray) {
 		vector<double> temp;
 		int resultSymbolNumber;
 		bool currentResult;
@@ -121,15 +126,26 @@ public:
 			if(i == currentSymbol) _standard[i] = 1;
 			else _standard[i] = 0;
 		}
-		//recognize(signalArray, resultSymbolNumber);
-		//if (resultSymbolNumber == currentSymbol) currentResult = true;
-		//else {
-		//	currentResult = false;
-		//	commonResult = currentResult;
-		//}
+		for(;;) {
+			Recognize(signalArray, resultSymbolNumber);
+			for (int i = 0; i < _symbolCount; ++i) 
+				if (fabs(signalArray[i] - _standard[i]) > thresholdTeachValue) {
+					currentResult = false; 
+					break; 
+				}
+				else currentResult = true;
+				for (int i = 0; i < _symbolCount; ++i)
+				for (int j = 0; ; ++j)
+					GetNeural(_thirdLayer, NEURAL_COUNT, i, j) -= 
+			//recognize(signalArray, resultSymbolNumber);
+			//if (resultSymbolNumber == currentSymbol) currentResult = true;
+			//else {
+			//	currentResult = false;
+			//	commonResult = currentResult;
+			//}
+			}
 	}
-
-	bool recognize(vector<double> &signalArray, int &resultSymbolNumber) {
+	bool Recognize(vector<double> &signalArray, int &resultSymbolNumber) {
 		vector<double> temp;
 		double maxResultValue = 0;
 		bool result = false;
@@ -524,7 +540,7 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 			getline(factSymbolStream, factSymbolValue);
 			getline(factSymbolStream, factSymbolValue);
 			factSymbolNumber = boost::lexical_cast<double>(factSymbolValue);
-			if (ThreeLayerPerceptron.recognize(signals, resultSymbolNumber))
+			if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber))
 				if (resultSymbolNumber == factSymbolNumber)
 					++recognizeCount;
 			//NeuralWeb.teach function here;
