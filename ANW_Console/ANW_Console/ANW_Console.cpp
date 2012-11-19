@@ -18,11 +18,11 @@ using namespace std;
 const int SYMBOL_COUNT = 33;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
 const int SIGNAL_COUNT = 20;
-const int NEURAL_COUNT = 80;
+const int NEURAL_COUNT = 50;
 const double LARGE_RAND = 1000000;
-const double TEACH_FACTOR = 0.01;
+const double TEACH_FACTOR = 1;
 const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
-const double THRESHOLD_TEACH_VALUE = 0.01;
+const double THRESHOLD_TEACH_VALUE = 0.1;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
 const string PATH_LIST_TEACH = "result/pathListTeach.txt";
@@ -38,7 +38,6 @@ class NeuralWeb {
 public:
 	vector<double> _firstLayer;
 	vector<double> _secondLayer;
-	vector<double> _thirdLayer;
 	vector<double> _standard;
 	unsigned _signalCount;
 	unsigned _symbolCount;
@@ -47,13 +46,11 @@ public:
 	double thresholdRecognizeValue;
 	double thresholdTeachValue;
 	double teachFactor;
-	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 2, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount) {
+	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 4, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount) {
 		for(int i = 0; i < signalCount * neuralCount; ++i)
 			_firstLayer.push_back(rand() / LARGE_RAND);
-		for(int i = 0; i < neuralCount * neuralCount; ++i)
-			_secondLayer.push_back(rand() / LARGE_RAND);
 		for(int i = 0; i < neuralCount * symbolCount; ++i)
-			_thirdLayer.push_back(rand() / LARGE_RAND);
+			_secondLayer.push_back(rand() / LARGE_RAND);
 		for(int i = 0; i < symbolCount; ++i)
 			_standard.push_back(NULL);
 		bettaParam = 1;
@@ -72,10 +69,6 @@ public:
 		for(int i = 0; i < _secondLayer.size(); ++i)
 			saveStream << _secondLayer[i] << endl;
 		saveStream.close();
-		saveStream.open(MATRIX_FOLDER + "thirdLayer.txt");
-		for(int i = 0; i < _thirdLayer.size(); ++i)
-			saveStream << _thirdLayer[i] << endl;
-		saveStream.close();
 	}
 
 	void LoadMatrix() {
@@ -88,10 +81,6 @@ public:
 		for(int i = 0; i < _secondLayer.size(); ++i)
 			loadStream >> _secondLayer[i];
 		loadStream.close();
-		loadStream.open(MATRIX_FOLDER + "thirdLayer.txt");
-		for(int i = 0; i < _thirdLayer.size(); ++i)
-			loadStream >> _thirdLayer[i];
-		loadStream.close();
 	}
 	
 	double SigmoidalFunction(double x) {
@@ -102,23 +91,41 @@ public:
 		return bettaParam * SigmoidalFunction(x) * (1 - SigmoidalFunction(x));
 	}
 
-	double& GetNeural(vector<double> layer, int layerWidth, int i, int j) {
+	double& GetNeural(vector<double> &layer, int layerWidth, int i, int j) {																	//ересь какая-то, без дополнительной переменной вернуть элемент нельзя
 		return layer[i + j * layerWidth];
 	}
 
-	vector<double> NeuralWebFunction(vector<double> signalArray, vector<double> layer, int layerWidth) {
+	vector<double> NeuralWebFunction(vector<double> &signalArray, vector<double> &layer, int layerWidth) {
 		vector<double> result;
 		double temp;
-		for (int i = 0; layer.size() / layerWidth; ++i) {
+		for (int i = 0; i < layer.size() / layerWidth; ++i) {
 			temp = 0;
-			for (int j = 0; signalArray.size(); ++j)
-				temp += GetNeural(layer, layerWidth,j,i) * signalArray[j]; 
+			for (int j = 0; j < signalArray.size(); ++j) {
+				double element = GetNeural(layer, layerWidth,j,i);
+				temp += element * signalArray[j]; 
+			}
 			result.push_back(SigmoidalFunction(temp));
 		}
+		return result;
 	}
 
-	bool Teach(int currentSymbol, vector<double> signalArray) {
+	vector<double> DiffNeuralWebFunction(vector<double> &signalArray, vector<double> &layer, int layerWidth) {
+		vector<double> result;
+		double temp;
+		for (int i = 0; i < layer.size() / layerWidth; ++i) {
+			temp = 0;
+			for (int j = 0; j < signalArray.size(); ++j)
+				temp += GetNeural(layer, layerWidth,j,i) * signalArray[j]; 
+			result.push_back(DiffSigmoidalFunction(temp));
+		}
+		return result;
+	}
+
+	bool Teach(int currentSymbol, vector<double> signalArray, vector<double> fftArray) {
 		vector<double> temp;
+		vector<double> IntermediateArray;
+		vector<double> diffFirstIntermediateArray;
+		vector<double> diffSecondIntermediateArray;
 		int resultSymbolNumber;
 		bool currentResult;
 		bool commonResult = true;
@@ -127,35 +134,36 @@ public:
 			else _standard[i] = 0;
 		}
 		for(;;) {
-			Recognize(signalArray, resultSymbolNumber);
+			signalArray = fftArray;
+			Recognize(signalArray, resultSymbolNumber, IntermediateArray);
 			for (int i = 0; i < _symbolCount; ++i) 
 				if (fabs(signalArray[i] - _standard[i]) > thresholdTeachValue) {
 					currentResult = false; 
 					break; 
 				}
 				else currentResult = true;
+				diffSecondIntermediateArray = DiffNeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
+				diffFirstIntermediateArray = DiffNeuralWebFunction(fftArray, _firstLayer, _signalCount);
 				for (int i = 0; i < _symbolCount; ++i)
-				for (int j = 0; ; ++j)
-					GetNeural(_thirdLayer, NEURAL_COUNT, i, j) -= 
-			//recognize(signalArray, resultSymbolNumber);
-			//if (resultSymbolNumber == currentSymbol) currentResult = true;
-			//else {
-			//	currentResult = false;
-			//	commonResult = currentResult;
-			//}
-			}
+					for (int j = 0; j < _neuralCount; ++j)
+						GetNeural(_secondLayer, _neuralCount, j, i) += teachFactor * (signalArray[i] - _standard[i]) * diffSecondIntermediateArray[i] * IntermediateArray[j];
+				for (int j = 0; j < _signalCount; ++j)
+					for (int i = 0; i < _neuralCount; ++i)
+							for (int k = 0; k < _symbolCount; ++k)
+							GetNeural(_firstLayer, _signalCount, j, i) += teachFactor * (signalArray[k] - _standard[k]) * diffSecondIntermediateArray[k] * GetNeural(_secondLayer, _neuralCount, i, k) * diffFirstIntermediateArray[i] * fftArray[j];	
+				if (currentResult == true) return true;
+		}
 	}
-	bool Recognize(vector<double> &signalArray, int &resultSymbolNumber) {
-		vector<double> temp;
+
+	bool Recognize(vector<double> &signalArray, int &resultSymbolNumber, vector<double> &IntermediateArray) {
 		double maxResultValue = 0;
 		bool result = false;
 		resultSymbolNumber = -1;
-		temp = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
-		temp = NeuralWebFunction(temp, _secondLayer, _neuralCount);
-		temp = NeuralWebFunction(temp, _thirdLayer, _symbolCount);
-		for(int i = 0; i < temp.size(); ++i) {
-			if (maxResultValue < temp[i] && maxResultValue >= thresholdRecognizeValue) {
-				maxResultValue = temp[i];
+		IntermediateArray = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
+		signalArray = NeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
+		for(int i = 0; i < signalArray.size(); ++i) {
+			if (maxResultValue < signalArray[i] && maxResultValue >= thresholdRecognizeValue) {
+				maxResultValue = signalArray[i];
 				result = true;
 				resultSymbolNumber = i;
 			}
@@ -408,18 +416,18 @@ vector<double> FFT(vector<double> dataDouble, int size) {
 	vector<double> fftDoubleData;
 	complexData.setbounds(0, size);
 	fftData.setbounds(0, size);
-	for(int i = 0; i < size; ++i) {
+	for (int i = 0; i < size; ++i) {
 		complexData(i).x = dataDouble[2 * i];
 		complexData(i).y = dataDouble[2 * i + 1];
 	}
-	for(int i = 1; i < size; ++i)
-		for(int j = 0; j < size; ++j) {
+	for (int i = 1; i < size; ++i)
+		for (int j = 0; j < size; ++j) {
 			fftData(i).x += complexData(j).x * cos(-2 * ap::pi() * i * j / size) - complexData(j).y * sin(-2 * ap::pi() * i * j / size);	
 			fftData(i).y += complexData(j).x * sin(-2 * ap::pi() * i * j / size) + complexData(j).y * cos(-2 * ap::pi() * i * j / size);
 		}
 	fftData(0) = 0;
 	double scalingFactor = sqrt(pow(ap::abscomplex(fftData(1)), 2) + pow(ap::abscomplex(fftData(size - 1)), 2));
-	for(int i = 0; i < size; ++i) {
+	for (int i = 0; i < size; ++i) {
 		fftData(i) /= scalingFactor;
 		fftDoubleData.push_back(fftData(i).x);
 		fftDoubleData.push_back(fftData(i).y);
@@ -488,14 +496,14 @@ void ReadFolder(string loadPath, string savePath) {
 			int iterator = 0;
 			symbolValue = "";
 			filePath = "";
-			while(it->path().filename().string()[iterator] < '0' || it->path().filename().string()[iterator] > '9') {
+			while (it->path().filename().string()[iterator] < '0' || it->path().filename().string()[iterator] > '9') {
 				if (it->path().filename().string()[iterator] == '"') continue;
 				string temp = string(&it->path().filename().string()[iterator],0,1);
 				symbolValue += temp;
 				++iterator;
 			}
 			iterator = 0;
-			while(iterator < it->path().string().length()) {
+			while (iterator < it->path().string().length()) {
 				if (it->path().string()[iterator] == '"') continue;
 				string temp = string(&it->path().string()[iterator],0,1);
 				filePath += temp;
@@ -515,15 +523,20 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 	int recognizeCount = 0;
 	int resultSymbolNumber;
 	int factSymbolNumber;
+	vector<double> IntermediateArray;
 	string factSymbolValue;
 	string currentLexicalSymbol;
 	vector<double> signals;
+	vector<double> fftSignals;
 	string fftSymbolPath;
-	for (fs::directory_iterator it(fftFolder), end; it != end; ++it)
+	for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
 			if (it->path().extension() == ".txt") 
 				++fileCount;
-	for(;;) {		
-		for (fs::directory_iterator it(fftFolder), end; it != end; ++it)
+	ThreeLayerPerceptron.LoadMatrix();
+	ifstream factSymbolStream;
+	for(;;) {
+		factSymbolStream.open(pathListTeach);
+		for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
 			if (it->path().extension() == ".txt") {
 				int iterator = 0;
 				int tempSize = 0;
@@ -535,18 +548,24 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 					++iterator;
 				}
 				signals = ReadFile(fftSymbolPath, tempSize);
-			ifstream factSymbolStream;
-			factSymbolStream.open(pathListTeach);
+				fftSignals = signals;
 			getline(factSymbolStream, factSymbolValue);
 			getline(factSymbolStream, factSymbolValue);
-			factSymbolNumber = boost::lexical_cast<double>(factSymbolValue);
-			if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber))
+			if (factSymbolValue.length() > 0)
+			factSymbolNumber = TransformLexicalToNumericValue(factSymbolValue);
+			else continue;
+			cout << "Training on the symbol '" << factSymbolValue << "'" << endl;
+			if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray))
 				if (resultSymbolNumber == factSymbolNumber)
 					++recognizeCount;
-			//NeuralWeb.teach function here;
+			ThreeLayerPerceptron.Teach(factSymbolNumber,signals, fftSignals);
 			}
-			if (recognizeCount == fileCount)
+			factSymbolStream.close();
+			if (recognizeCount == fileCount) {
+				ThreeLayerPerceptron.SaveMatrix();
+				factSymbolStream.close();
 				return true;
+			}
 			else continue;
 	}
 }
@@ -569,8 +588,9 @@ int _tmain(int argc, _TCHAR* argv[])
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl << "Handling coordinates...";
 			FormSignals(PATHES_FOLDER + TEACH_FOLDER, FFT_FOLDER, TEACH_MODE);
 			cout << "ready" << endl << "For training used " << 2 * SIGNAL_COUNT << " signals." <<endl;
-			NeuralWeb NW;
-			NW.SaveMatrix();
+			cout << "Starting a learning process: " << endl;
+			if(NeuralWebTeach(FFT_FOLDER, PATH_LIST_TEACH))
+				cout << "Training is complete!" << endl;
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
