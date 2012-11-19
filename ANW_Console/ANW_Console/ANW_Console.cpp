@@ -15,14 +15,14 @@
 #include <boost/lexical_cast.hpp>
 
 using namespace std;
-const int SYMBOL_COUNT = 33;
+const int SYMBOL_COUNT = 32;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
 const int SIGNAL_COUNT = 20;
-const int NEURAL_COUNT = 50;
+const int NEURAL_COUNT = 80;
 const double LARGE_RAND = 1000000;
 const double TEACH_FACTOR = 1;
 const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
-const double THRESHOLD_TEACH_VALUE = 0.1;
+const double THRESHOLD_TEACH_VALUE = 0.95;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
 const string PATH_LIST_TEACH = "result/pathListTeach.txt";
@@ -136,12 +136,13 @@ public:
 		for(;;) {
 			signalArray = fftArray;
 			Recognize(signalArray, resultSymbolNumber, IntermediateArray);
-			for (int i = 0; i < _symbolCount; ++i) 
+			for (int i = 0; i < _symbolCount; ++i)  
 				if (fabs(signalArray[i] - _standard[i]) > thresholdTeachValue) {
-					currentResult = false; 
-					break; 
+					currentResult = false;
+					break;
 				}
 				else currentResult = true;
+				if (currentResult == true) return true;
 				diffSecondIntermediateArray = DiffNeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
 				diffFirstIntermediateArray = DiffNeuralWebFunction(fftArray, _firstLayer, _signalCount);
 				for (int i = 0; i < _symbolCount; ++i)
@@ -151,7 +152,6 @@ public:
 					for (int i = 0; i < _neuralCount; ++i)
 							for (int k = 0; k < _symbolCount; ++k)
 							GetNeural(_firstLayer, _signalCount, j, i) += teachFactor * (signalArray[k] - _standard[k]) * diffSecondIntermediateArray[k] * GetNeural(_secondLayer, _neuralCount, i, k) * diffFirstIntermediateArray[i] * fftArray[j];	
-				if (currentResult == true) return true;
 		}
 	}
 
@@ -554,7 +554,7 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 			if (factSymbolValue.length() > 0)
 			factSymbolNumber = TransformLexicalToNumericValue(factSymbolValue);
 			else continue;
-			cout << "Training on the symbol '" << factSymbolValue << "'" << endl;
+			cout << "Training on the symbol '" << factSymbolValue << "'\r";
 			if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray))
 				if (resultSymbolNumber == factSymbolNumber)
 					++recognizeCount;
