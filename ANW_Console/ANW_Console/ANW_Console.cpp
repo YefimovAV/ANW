@@ -17,12 +17,12 @@
 using namespace std;
 const int SYMBOL_COUNT = 32;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
-const int SIGNAL_COUNT = 20;
+const int SIGNAL_COUNT = 10;
 const int NEURAL_COUNT = 80;
 const double LARGE_RAND = 1000000;
-const double TEACH_FACTOR = 1;
+const double TEACH_FACTOR = 0.1;
 const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
-const double THRESHOLD_TEACH_VALUE = 0.95;
+const double THRESHOLD_TEACH_VALUE = 0.9;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
 const string PATH_LIST_TEACH = "result/pathListTeach.txt";
@@ -47,7 +47,7 @@ public:
 	double thresholdTeachValue;
 	double teachFactor;
 	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 4, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount) {
-		for(int i = 0; i < signalCount * neuralCount; ++i)
+		for(int i = 0; i < signalCount * symbolCount; ++i)
 			_firstLayer.push_back(rand() / LARGE_RAND);
 		for(int i = 0; i < neuralCount * symbolCount; ++i)
 			_secondLayer.push_back(rand() / LARGE_RAND);
@@ -101,8 +101,7 @@ public:
 		for (int i = 0; i < layer.size() / layerWidth; ++i) {
 			temp = 0;
 			for (int j = 0; j < signalArray.size(); ++j) {
-				double element = GetNeural(layer, layerWidth,j,i);
-				temp += element * signalArray[j]; 
+				temp += GetNeural(layer, layerWidth,j,i) * signalArray[j]; 
 			}
 			result.push_back(SigmoidalFunction(temp));
 		}
@@ -137,21 +136,21 @@ public:
 			signalArray = fftArray;
 			Recognize(signalArray, resultSymbolNumber, IntermediateArray);
 			for (int i = 0; i < _symbolCount; ++i)  
-				if (fabs(signalArray[i] - _standard[i]) > thresholdTeachValue) {
+				if (fabs(signalArray[i] - _standard[i]) > 1 - thresholdTeachValue) {
 					currentResult = false;
 					break;
 				}
 				else currentResult = true;
 				if (currentResult == true) return true;
-				diffSecondIntermediateArray = DiffNeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
+				//diffSecondIntermediateArray = DiffNeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
 				diffFirstIntermediateArray = DiffNeuralWebFunction(fftArray, _firstLayer, _signalCount);
 				for (int i = 0; i < _symbolCount; ++i)
-					for (int j = 0; j < _neuralCount; ++j)
-						GetNeural(_secondLayer, _neuralCount, j, i) += teachFactor * (signalArray[i] - _standard[i]) * diffSecondIntermediateArray[i] * IntermediateArray[j];
-				for (int j = 0; j < _signalCount; ++j)
-					for (int i = 0; i < _neuralCount; ++i)
-							for (int k = 0; k < _symbolCount; ++k)
-							GetNeural(_firstLayer, _signalCount, j, i) += teachFactor * (signalArray[k] - _standard[k]) * diffSecondIntermediateArray[k] * GetNeural(_secondLayer, _neuralCount, i, k) * diffFirstIntermediateArray[i] * fftArray[j];	
+					for (int j = 0; j < _signalCount; ++j)
+						GetNeural(_firstLayer, _signalCount, j, i) += teachFactor * (signalArray[i] - _standard[i]) * diffFirstIntermediateArray[i] * fftArray[j];
+				//for (int j = 0; j < _signalCount; ++j)
+				//	for (int i = 0; i < _neuralCount; ++i)
+				//			for (int k = 0; k < _symbolCount; ++k)
+				//			GetNeural(_firstLayer, _signalCount, j, i) += teachFactor * (signalArray[k] - _standard[k]) * diffSecondIntermediateArray[k] * GetNeural(_secondLayer, _neuralCount, i, k) * diffFirstIntermediateArray[i] * fftArray[j];	
 		}
 	}
 
@@ -159,13 +158,16 @@ public:
 		double maxResultValue = 0;
 		bool result = false;
 		resultSymbolNumber = -1;
-		IntermediateArray = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
-		signalArray = NeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
+		//IntermediateArray = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
+		//signalArray = NeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
+		signalArray = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
 		for(int i = 0; i < signalArray.size(); ++i) {
-			if (maxResultValue < signalArray[i] && maxResultValue >= thresholdRecognizeValue) {
+			if (maxResultValue < signalArray[i]) {
 				maxResultValue = signalArray[i];
-				result = true;
-				resultSymbolNumber = i;
+				if (maxResultValue >= thresholdRecognizeValue) {
+					result = true;
+					resultSymbolNumber = i;
+				}
 			}
 		}
 		return result;
@@ -422,8 +424,10 @@ vector<double> FFT(vector<double> dataDouble, int size) {
 	}
 	for (int i = 1; i < size; ++i)
 		for (int j = 0; j < size; ++j) {
-			fftData(i).x += complexData(j).x * cos(-2 * ap::pi() * i * j / size) - complexData(j).y * sin(-2 * ap::pi() * i * j / size);	
-			fftData(i).y += complexData(j).x * sin(-2 * ap::pi() * i * j / size) + complexData(j).y * cos(-2 * ap::pi() * i * j / size);
+			//fftData(i).x += complexData(j).x * cos(-2 * ap::pi() * i * j / size) - complexData(j).y * sin(-2 * ap::pi() * i * j / size);	
+			//fftData(i).y += complexData(j).x * sin(-2 * ap::pi() * i * j / size) + complexData(j).y * cos(-2 * ap::pi() * i * j / size);
+			fftData(i).x += complexData(j).x * cos(2 * ap::pi() * i * j / size) + complexData(j).y * sin(2 * ap::pi() * i * j / size);	
+			fftData(i).y += complexData(j).y * cos(2 * ap::pi() * i * j / size) - complexData(j).x * sin(2 * ap::pi() * i * j / size);
 		}
 	fftData(0) = 0;
 	double scalingFactor = sqrt(pow(ap::abscomplex(fftData(1)), 2) + pow(ap::abscomplex(fftData(size - 1)), 2));
@@ -476,7 +480,7 @@ void FormSignals(string coordinatesFolder, string fftFolder, string mode) {
 			if (whitePixelCount >= 4 * SIGNAL_COUNT) {
 				for (int i = 3; i < 3 + 2 * SIGNAL_COUNT; ++i)											// Сигналы формируются начиная с первого элемента ряда Фурье, а не с нулевого.
 					fftFile << signals[i] << endl;
-				for (int i = whitePixelCount - 1; i > whitePixelCount - 1 - 2 * SIGNAL_COUNT; --i)		// В обратную сторону сигналы формируются начиная с последнего элемента ряда Фурье
+				for (int i = whitePixelCount - 2 * SIGNAL_COUNT; i < whitePixelCount; ++i)		// В обратную сторону сигналы формируются начиная с последнего элемента ряда Фурье
 					fftFile << signals[i] << endl;
 			}
 			fftFile.close();
@@ -590,7 +594,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			cout << "ready" << endl << "For training used " << 2 * SIGNAL_COUNT << " signals." <<endl;
 			cout << "Starting a learning process: " << endl;
 			if(NeuralWebTeach(FFT_FOLDER, PATH_LIST_TEACH))
-				cout << "Training is complete!" << endl;
+				cout << "\r		Training is complete!" << endl;
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
