@@ -1,4 +1,8 @@
 teach\à01.bmp
 à
+teach\á01.bmp
+á
 teach\ä01.bmp
 ä
+teach\ì01.bmp
+ì

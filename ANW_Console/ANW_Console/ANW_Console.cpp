@@ -24,6 +24,7 @@ const double LARGE_RAND = 1000000;
 const double TEACH_FACTOR = 0.1;
 const double THRESHOLD_RECOGNIZE_VALUE = 0.5;
 const double THRESHOLD_TEACH_VALUE = 0.9;
+const string RESULT_FOLDER = "result";
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
 const string PATH_LIST_TEACH = "result/pathListTeach.txt";
@@ -561,19 +562,23 @@ void ReadFolder(string loadPath, string savePath) {
 	pathList.close();
 }
 
-void DeleteFiles() {
+void DeleteFiles(string resultDir) {
 	namespace fs = boost::filesystem;
 	typedef fs::recursive_directory_iterator rdi;
 	int iterator;
 	string filePath;
-    rdi itBeg(fs::path("/result/fft")), itEnd; 
+    rdi itBeg(resultDir), itEnd; 
     for(; itBeg != itEnd; ++itBeg) {
-		while (iterator < itBeg->path().string().length()) {
-				string temp = string(&itBeg->path().string()[iterator],0,1);
-				filePath += temp;
-				++iterator;
-			}
-		std::remove(filePath.c_str);
+		string filePath;
+		iterator = 0;
+		if (itBeg->path().extension() == ".bmp" || itBeg->path().extension() == ".txt" ) {
+			while (iterator < itBeg->path().string().length()) {
+					string temp = string(&itBeg->path().string()[iterator],0,1);
+					filePath += temp;
+					++iterator;
+				}
+			std::remove(filePath.c_str());
+		}
     }
 }
 
@@ -641,7 +646,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		cout << "Choose a mode (teach/recognition): ";
 		cin >> mode;
 		if(mode == "teach") { 
-			DeleteFiles();
+			DeleteFiles(RESULT_FOLDER);
 			cout << "You choose Teach mode" << endl; 
 			cout << "Read folder..." << endl;
 			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH);
