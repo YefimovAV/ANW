@@ -1,4 +1,4 @@
-teach\a04.bmp
-a
-teach\b03.bmp
-b
+teach\à01.bmp
+à
+teach\ä01.bmp
+ä

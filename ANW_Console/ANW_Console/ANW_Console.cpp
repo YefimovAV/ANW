@@ -13,6 +13,7 @@
 #include <vector>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 using namespace std;
 const int SYMBOL_COUNT = 32;
@@ -21,7 +22,7 @@ const int SIGNAL_COUNT = 10;
 const int NEURAL_COUNT = 80;
 const double LARGE_RAND = 1000000;
 const double TEACH_FACTOR = 0.1;
-const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
+const double THRESHOLD_RECOGNIZE_VALUE = 0.5;
 const double THRESHOLD_TEACH_VALUE = 0.9;
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
@@ -173,7 +174,7 @@ public:
 		return result;
 	}
 };
-
+/*
 int TransformLexicalToNumericValue (string symbol) {
 	int numericValue;
 	if(symbol == "a") numericValue = 0; else
@@ -208,6 +209,44 @@ int TransformLexicalToNumericValue (string symbol) {
 	if(symbol == "ea") numericValue = 29; else
 	if(symbol == "u") numericValue = 30; else
 	if(symbol == "ya") numericValue = 31; else
+	return -1;
+	return numericValue;
+}
+*/
+int TransformLexicalToNumericValue (string symbol) {
+	int numericValue;
+	if(symbol == "à") numericValue = 0; else
+	if(symbol == "á") numericValue = 1; else
+	if(symbol == "â") numericValue = 2; else
+	if(symbol == "ã") numericValue = 3; else
+	if(symbol == "ä") numericValue = 4; else
+	if(symbol == "å") numericValue = 5; else
+	if(symbol == "æ") numericValue = 6; else
+	if(symbol == "ç") numericValue = 7; else
+	if(symbol == "è") numericValue = 8; else
+	if(symbol == "é") numericValue = 9; else
+	if(symbol == "ê") numericValue = 10; else
+	if(symbol == "ë") numericValue = 11; else
+	if(symbol == "ì") numericValue = 12; else
+	if(symbol == "í") numericValue = 13; else
+	if(symbol == "î") numericValue = 14; else
+	if(symbol == "ï") numericValue = 15; else
+	if(symbol == "ð") numericValue = 16; else
+	if(symbol == "ñ") numericValue = 17; else
+	if(symbol == "ò") numericValue = 18; else
+	if(symbol == "ó") numericValue = 19; else
+	if(symbol == "ô") numericValue = 20; else
+	if(symbol == "õ") numericValue = 21; else
+	if(symbol == "ö") numericValue = 22; else
+	if(symbol == "÷") numericValue = 23; else
+	if(symbol == "ø") numericValue = 24; else
+	if(symbol == "ù") numericValue = 25; else
+	if(symbol == "ú") numericValue = 26; else
+	if(symbol == "û") numericValue = 27; else
+	if(symbol == "ü") numericValue = 28; else
+	if(symbol == "ý") numericValue = 29; else
+	if(symbol == "þ") numericValue = 30; else
+	if(symbol == "ÿ") numericValue = 31; else
 	return -1;
 	return numericValue;
 }
@@ -404,10 +443,12 @@ int ImageProcessing (string filePath, string mode) {
 			pathFile.close();
 		}
 		else {
-			delete[] blackAndWhite;
-			delete[] scanArray;
+			//delete[] blackAndWhite;
+			//delete[] scanArray;
 			break;
 		}
+	delete[] blackAndWhite;
+	delete[] scanArray;
 	}
 	return iterator;
 }
@@ -520,6 +561,22 @@ void ReadFolder(string loadPath, string savePath) {
 	pathList.close();
 }
 
+void DeleteFiles() {
+	namespace fs = boost::filesystem;
+	typedef fs::recursive_directory_iterator rdi;
+	int iterator;
+	string filePath;
+    rdi itBeg(fs::path("/result/fft")), itEnd; 
+    for(; itBeg != itEnd; ++itBeg) {
+		while (iterator < itBeg->path().string().length()) {
+				string temp = string(&itBeg->path().string()[iterator],0,1);
+				filePath += temp;
+				++iterator;
+			}
+		std::remove(filePath.c_str);
+    }
+}
+
 bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 	namespace fs = boost::filesystem;
 	NeuralWeb ThreeLayerPerceptron;
@@ -584,6 +641,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		cout << "Choose a mode (teach/recognition): ";
 		cin >> mode;
 		if(mode == "teach") { 
+			DeleteFiles();
 			cout << "You choose Teach mode" << endl; 
 			cout << "Read folder..." << endl;
 			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH);
