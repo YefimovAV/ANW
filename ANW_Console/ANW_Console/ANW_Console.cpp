@@ -18,12 +18,12 @@
 using namespace std;
 const int SYMBOL_COUNT = 32;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
-const int SIGNAL_COUNT = 10;
+const int SIGNAL_COUNT = 20;
 const int NEURAL_COUNT = 80;
 const double LARGE_RAND = 1000000;
 const double TEACH_FACTOR = 0.1;
-const double THRESHOLD_RECOGNIZE_VALUE = 0.5;
-const double THRESHOLD_TEACH_VALUE = 0.9;
+const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
+const double THRESHOLD_TEACH_VALUE = 0.95;
 const string RESULT_FOLDER = "result";
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
@@ -144,7 +144,6 @@ public:
 				}
 				else currentResult = true;
 				if (currentResult == true) return true;
-				//diffSecondIntermediateArray = DiffNeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
 				diffFirstIntermediateArray = DiffNeuralWebFunction(fftArray, _firstLayer, _signalCount);
 				for (int i = 0; i < _symbolCount; ++i)
 					for (int j = 0; j < _signalCount; ++j)
@@ -160,8 +159,6 @@ public:
 		double maxResultValue = 0;
 		bool result = false;
 		resultSymbolNumber = -1;
-		//IntermediateArray = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
-		//signalArray = NeuralWebFunction(IntermediateArray, _secondLayer, _neuralCount);
 		signalArray = NeuralWebFunction(signalArray, _firstLayer, _signalCount);
 		for(int i = 0; i < signalArray.size(); ++i) {
 			if (maxResultValue < signalArray[i]) {
@@ -175,45 +172,7 @@ public:
 		return result;
 	}
 };
-/*
-int TransformLexicalToNumericValue (string symbol) {
-	int numericValue;
-	if(symbol == "a") numericValue = 0; else
-	if(symbol == "b") numericValue = 1; else
-	if(symbol == "v") numericValue = 2; else
-	if(symbol == "g") numericValue = 3; else
-	if(symbol == "d") numericValue = 4; else
-	if(symbol == "e") numericValue = 5; else
-	if(symbol == "j") numericValue = 6; else
-	if(symbol == "z") numericValue = 7; else
-	if(symbol == "i") numericValue = 8; else
-	if(symbol == "ij") numericValue = 9; else
-	if(symbol == "k") numericValue = 10; else
-	if(symbol == "l") numericValue = 11; else
-	if(symbol == "m") numericValue = 12; else
-	if(symbol == "n") numericValue = 13; else
-	if(symbol == "o") numericValue = 14; else
-	if(symbol == "p") numericValue = 15; else
-	if(symbol == "r") numericValue = 16; else
-	if(symbol == "s") numericValue = 17; else
-	if(symbol == "t") numericValue = 18; else
-	if(symbol == "y") numericValue = 19; else
-	if(symbol == "f") numericValue = 20; else
-	if(symbol == "x") numericValue = 21; else
-	if(symbol == "c") numericValue = 22; else
-	if(symbol == "ch") numericValue = 23; else
-	if(symbol == "sh") numericValue = 24; else
-	if(symbol == "sch") numericValue = 25; else
-	if(symbol == "tz") numericValue = 26; else
-	if(symbol == "bI") numericValue = 27; else
-	if(symbol == "mz") numericValue = 28; else
-	if(symbol == "ea") numericValue = 29; else
-	if(symbol == "u") numericValue = 30; else
-	if(symbol == "ya") numericValue = 31; else
-	return -1;
-	return numericValue;
-}
-*/
+
 int TransformLexicalToNumericValue (string symbol) {
 	int numericValue;
 	if(symbol == "à") numericValue = 0; else
@@ -615,25 +574,62 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 				}
 				signals = ReadFile(fftSymbolPath, tempSize);
 				fftSignals = signals;
-			getline(factSymbolStream, factSymbolValue);
-			getline(factSymbolStream, factSymbolValue);
-			if (factSymbolValue.length() > 0)
-			factSymbolNumber = TransformLexicalToNumericValue(factSymbolValue);
-			else continue;
-			cout << "Training on the symbol '" << factSymbolValue << "'\r";
-			if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray))
-				if (resultSymbolNumber == factSymbolNumber)
-					++recognizeCount;
-			ThreeLayerPerceptron.Teach(factSymbolNumber,signals, fftSignals);
+				getline(factSymbolStream, factSymbolValue);
+				getline(factSymbolStream, factSymbolValue);
+				if (factSymbolValue.length() > 0)
+				factSymbolNumber = TransformLexicalToNumericValue(factSymbolValue);
+				else continue;
+				cout << "Training on the symbol '" << factSymbolValue << "'\r";
+				if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray))
+					if (resultSymbolNumber == factSymbolNumber)
+						++recognizeCount;
+				ThreeLayerPerceptron.Teach(factSymbolNumber,signals, fftSignals);
+				if (recognizeCount == fileCount) {
+					ThreeLayerPerceptron.SaveMatrix();
+					return true;
+				}
 			}
 			factSymbolStream.close();
 			if (recognizeCount == fileCount) {
 				ThreeLayerPerceptron.SaveMatrix();
-				factSymbolStream.close();
 				return true;
 			}
 			else continue;
 	}
+}
+
+bool NeuralWebRecognition(string fftFolder, string pathListTeach) {
+	namespace fs = boost::filesystem;
+	NeuralWeb ThreeLayerPerceptron;
+	int resultSymbolNumber;
+	vector<double> IntermediateArray;
+	string currentLexicalSymbol;
+	vector<double> signals;
+	vector<double> fftSignals;
+	string fftSymbolPath;
+	bool result = false;
+	ThreeLayerPerceptron.LoadMatrix();
+	for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
+		if (it->path().extension() == ".txt") {
+			int iterator = 0;
+			int tempSize = 0;
+			fftSymbolPath = "";
+			while(it->path().string()[iterator]) {
+				if (it->path().string()[iterator] == '"') continue;
+				string temp = string(&it->path().string()[iterator],0,1);
+				fftSymbolPath += temp;
+				++iterator;
+			}
+			signals = ReadFile(fftSymbolPath, tempSize);
+			fftSignals = signals;
+		cout << "Result symbol: ";
+		if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray)) {
+			cout << resultSymbolNumber << endl;
+			result = true;
+		}
+		else {result = false; continue;}
+	}
+	return result;
 }
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -661,11 +657,14 @@ int _tmain(int argc, _TCHAR* argv[])
 		}
 		else if(mode == "recognition") {
 			cout << "You choose recognition mode" << endl; 
-			cout << "Read folder..." << endl;
+			/*cout << "Read folder..." << endl;
 			ReadFolder(RECOGNITION_FOLDER, PATH_LIST_RECOGNITION);
 			cout << "Image processing... ";
 			imageCount = ImageProcessing(PATH_LIST_RECOGNITION, RECOGNITION_MODE);
-			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;
+			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;*/
+			cout << "Starting a recognition process: " << endl;
+			if(NeuralWebRecognition(FFT_FOLDER, PATH_LIST_TEACH))
+				cout << "\r		Recognition is complete!" << endl;
 		}
 		else cout << "Bad value, choose again" << endl;
 	}
