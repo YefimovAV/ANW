@@ -402,11 +402,7 @@ int ImageProcessing (string filePath, string mode) {
 			++iterator;
 			pathFile.close();
 		}
-		else {
-			//delete[] blackAndWhite;
-			//delete[] scanArray;
-			break;
-		}
+		else break;
 	delete[] blackAndWhite;
 	delete[] scanArray;
 	}
@@ -425,8 +421,6 @@ vector<double> FFT(vector<double> dataDouble, int size) {
 	}
 	for (int i = 1; i < size; ++i)
 		for (int j = 0; j < size; ++j) {
-			//fftData(i).x += complexData(j).x * cos(-2 * ap::pi() * i * j / size) - complexData(j).y * sin(-2 * ap::pi() * i * j / size);	
-			//fftData(i).y += complexData(j).x * sin(-2 * ap::pi() * i * j / size) + complexData(j).y * cos(-2 * ap::pi() * i * j / size);
 			fftData(i).x += complexData(j).x * cos(2 * ap::pi() * i * j / size) + complexData(j).y * sin(2 * ap::pi() * i * j / size);	
 			fftData(i).y += complexData(j).y * cos(2 * ap::pi() * i * j / size) - complexData(j).x * sin(2 * ap::pi() * i * j / size);
 		}
@@ -521,12 +515,12 @@ void ReadFolder(string loadPath, string savePath) {
 	pathList.close();
 }
 
-void DeleteFiles(string resultDir) {
+void DeleteFiles(string dir) {
 	namespace fs = boost::filesystem;
 	typedef fs::recursive_directory_iterator rdi;
 	int iterator;
 	string filePath;
-    rdi itBeg(resultDir), itEnd; 
+    rdi itBeg(dir), itEnd; 
     for(; itBeg != itEnd; ++itBeg) {
 		string filePath;
 		iterator = 0;
@@ -561,6 +555,7 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 	ifstream factSymbolStream;
 	for(;;) {
 		factSymbolStream.open(pathListTeach);
+		recognizeCount = 0;
 		for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
 			if (it->path().extension() == ".txt") {
 				int iterator = 0;
@@ -580,10 +575,12 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 				factSymbolNumber = TransformLexicalToNumericValue(factSymbolValue);
 				else continue;
 				cout << "Training on the symbol '" << factSymbolValue << "'\r";
-				if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray))
-					if (resultSymbolNumber == factSymbolNumber)
-						++recognizeCount;
-				ThreeLayerPerceptron.Teach(factSymbolNumber,signals, fftSignals);
+				ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray);
+				//if(factSymbolNumber == 0 && resultSymbolNumber == 0) 
+				//	factSymbolNumber = factSymbolNumber;
+				if (resultSymbolNumber == factSymbolNumber)
+					++recognizeCount; 
+				else ThreeLayerPerceptron.Teach(factSymbolNumber,signals, fftSignals);
 				if (recognizeCount == fileCount) {
 					ThreeLayerPerceptron.SaveMatrix();
 					return true;
@@ -627,7 +624,7 @@ bool NeuralWebRecognition(string fftFolder, string pathListTeach) {
 			cout << resultSymbolNumber << endl;
 			result = true;
 		}
-		else {result = false; continue;}
+		else {result = false; cout<< "Bad recognize" << endl; continue;}
 	}
 	return result;
 }
