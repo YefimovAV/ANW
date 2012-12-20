@@ -211,6 +211,43 @@ int TransformLexicalToNumericValue (string symbol) {
 	return numericValue;
 }
 
+string TransformNumericToLexicalValue (int numericValue) {
+	string symbol;
+	if(numericValue == 0) symbol="à"; else
+	if(numericValue == 1) symbol="á"; else
+	if(numericValue == 2) symbol="â"; else
+	if(numericValue == 3) symbol="ã"; else
+	if(numericValue == 4) symbol="ä"; else
+	if(numericValue == 5) symbol="å"; else
+	if(numericValue == 6) symbol="æ"; else
+	if(numericValue == 7) symbol="ç"; else
+	if(numericValue == 8) symbol="è"; else
+	if(numericValue == 9) symbol="é"; else
+	if( numericValue == 10) symbol ="ê"; else
+	if( numericValue == 11) symbol ="ë"; else
+	if( numericValue == 12) symbol ="ì"; else
+	if( numericValue == 13) symbol ="í"; else
+	if( numericValue == 14) symbol ="î"; else
+	if( numericValue == 15) symbol ="ï"; else
+	if( numericValue == 16) symbol ="ð"; else
+	if( numericValue == 17) symbol ="ñ"; else
+	if( numericValue == 18) symbol ="ò"; else
+	if( numericValue == 19) symbol ="ó"; else
+	if( numericValue == 20) symbol ="ô"; else
+	if( numericValue == 21) symbol ="õ"; else
+	if( numericValue == 22) symbol ="ö"; else
+	if( numericValue == 23) symbol ="÷"; else
+	if( numericValue == 24) symbol ="ø"; else
+	if( numericValue == 25) symbol ="ù"; else
+	if( numericValue == 26) symbol ="ú"; else
+	if( numericValue == 27) symbol ="û"; else
+	if( numericValue == 28) symbol ="ü"; else
+	if( numericValue == 29) symbol ="ý"; else
+	if( numericValue == 30) symbol ="þ"; else
+	if( numericValue == 31) symbol ="ÿ"; else
+	return symbol;
+}
+
 void k_to_b(unsigned char* k, unsigned char* b,unsigned rowLength, int wI, int hI)
 {
 	for(int i = 0; i < hI; i++)
@@ -515,24 +552,66 @@ void ReadFolder(string loadPath, string savePath) {
 	pathList.close();
 }
 
-void DeleteFiles(string dir) {
+void DeleteFiles(string fftDir, string imageDir, string pathesDir, string matrixDir, string mode) {
 	namespace fs = boost::filesystem;
 	typedef fs::recursive_directory_iterator rdi;
 	int iterator;
 	string filePath;
-    rdi itBeg(dir), itEnd; 
-    for(; itBeg != itEnd; ++itBeg) {
+    rdi itBegFft(fftDir + mode), itEndFft; 
+    for(; itBegFft != itEndFft; ++itBegFft) {
 		string filePath;
 		iterator = 0;
-		if (itBeg->path().extension() == ".bmp" || itBeg->path().extension() == ".txt" ) {
-			while (iterator < itBeg->path().string().length()) {
-					string temp = string(&itBeg->path().string()[iterator],0,1);
+		if (itBegFft->path().extension() == ".bmp" || itBegFft->path().extension() == ".txt" ) {
+			while (iterator < itBegFft->path().string().length()) {
+					string temp = string(&itBegFft->path().string()[iterator],0,1);
 					filePath += temp;
 					++iterator;
 				}
 			std::remove(filePath.c_str());
 		}
     }
+	rdi itBegImage(imageDir + mode), itEndImage; 
+    for(; itBegImage != itEndImage; ++itBegImage) {
+		string filePath;
+		iterator = 0;
+		if (itBegImage->path().extension() == ".bmp" || itBegImage->path().extension() == ".txt" ) {
+			while (iterator < itBegImage->path().string().length()) {
+					string temp = string(&itBegImage->path().string()[iterator],0,1);
+					filePath += temp;
+					++iterator;
+				}
+			std::remove(filePath.c_str());
+		}
+    }
+	rdi itBegPathes(pathesDir + mode), itEndPathes; 
+    for(; itBegPathes != itEndImage; ++itBegPathes) {
+		string filePath;
+		iterator = 0;
+		if (itBegPathes->path().extension() == ".bmp" || itBegPathes->path().extension() == ".txt" ) {
+			while (iterator < itBegPathes->path().string().length()) {
+					string temp = string(&itBegPathes->path().string()[iterator],0,1);
+					filePath += temp;
+					++iterator;
+				}
+			std::remove(filePath.c_str());
+		}
+    }
+	if (mode == TEACH_MODE)
+	{
+		rdi itBegMatrix(matrixDir), itEndMatrix; 
+		for(; itBegMatrix != itEndMatrix; ++itBegMatrix) {
+			string filePath;
+			iterator = 0;
+			if (itBegMatrix->path().extension() == ".bmp" || itBegMatrix->path().extension() == ".txt" ) {
+				while (iterator < itBegMatrix->path().string().length()) {
+						string temp = string(&itBegMatrix->path().string()[iterator],0,1);
+						filePath += temp;
+						++iterator;
+					}
+				std::remove(filePath.c_str());
+			}
+		}
+	}
 }
 
 bool NeuralWebTeach(string fftFolder, string pathListTeach) {
@@ -576,8 +655,6 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 				else continue;
 				cout << "Training on the symbol '" << factSymbolValue << "'\r";
 				ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray);
-				//if(factSymbolNumber == 0 && resultSymbolNumber == 0) 
-				//	factSymbolNumber = factSymbolNumber;
 				if (resultSymbolNumber == factSymbolNumber)
 					++recognizeCount; 
 				else ThreeLayerPerceptron.Teach(factSymbolNumber,signals, fftSignals);
@@ -606,7 +683,7 @@ bool NeuralWebRecognition(string fftFolder, string pathListTeach) {
 	string fftSymbolPath;
 	bool result = false;
 	ThreeLayerPerceptron.LoadMatrix();
-	for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
+	for (fs::directory_iterator it(fftFolder + RECOGNITION_MODE), end; it != end; ++it)
 		if (it->path().extension() == ".txt") {
 			int iterator = 0;
 			int tempSize = 0;
@@ -621,6 +698,7 @@ bool NeuralWebRecognition(string fftFolder, string pathListTeach) {
 			fftSignals = signals;
 		cout << "Result symbol: ";
 		if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray)) {
+			//cout << TransformNumericToLexicalValue(resultSymbolNumber) << endl;
 			cout << resultSymbolNumber << endl;
 			result = true;
 		}
@@ -639,7 +717,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		cout << "Choose a mode (teach/recognition): ";
 		cin >> mode;
 		if(mode == "teach") { 
-			DeleteFiles(RESULT_FOLDER);
+			DeleteFiles(FFT_FOLDER, IMAGE_FOLDER, PATHES_FOLDER, MATRIX_FOLDER, TEACH_MODE);
 			cout << "You choose Teach mode" << endl; 
 			cout << "Read folder..." << endl;
 			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH);
@@ -653,14 +731,17 @@ int _tmain(int argc, _TCHAR* argv[])
 				cout << "\r		Training is complete!" << endl;
 		}
 		else if(mode == "recognition") {
+			DeleteFiles(FFT_FOLDER, IMAGE_FOLDER, PATHES_FOLDER, MATRIX_FOLDER, RECOGNITION_MODE);
 			cout << "You choose recognition mode" << endl; 
-			/*cout << "Read folder..." << endl;
+			cout << "Read folder..." << endl;
 			ReadFolder(RECOGNITION_FOLDER, PATH_LIST_RECOGNITION);
 			cout << "Image processing... ";
 			imageCount = ImageProcessing(PATH_LIST_RECOGNITION, RECOGNITION_MODE);
-			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl;*/
+			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl << "Handling coordinates...";
+			FormSignals(PATHES_FOLDER + RECOGNITION_FOLDER, FFT_FOLDER, RECOGNITION_MODE);
+			cout << "ready" << endl << "For recognition used " << 2 * SIGNAL_COUNT << " signals." <<endl;
 			cout << "Starting a recognition process: " << endl;
-			if(NeuralWebRecognition(FFT_FOLDER, PATH_LIST_TEACH))
+			if(NeuralWebRecognition(FFT_FOLDER, PATH_LIST_RECOGNITION))
 				cout << "\r		Recognition is complete!" << endl;
 		}
 		else cout << "Bad value, choose again" << endl;
