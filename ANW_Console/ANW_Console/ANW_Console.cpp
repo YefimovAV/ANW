@@ -6,10 +6,13 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <locale>
 #include "agg_win32_bmp.h"
 #include "NoiseEdit.h"
 #include "Skelet.h"
 #include "fft.h"
+#include "omp.h"
+#include "windows.h"
 #include <vector>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
@@ -24,6 +27,7 @@ const double LARGE_RAND = 1000000;
 const double TEACH_FACTOR = 0.1;
 const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
 const double THRESHOLD_TEACH_VALUE = 0.95;
+const double TEACH_INDEX = 0.92;
 const string RESULT_FOLDER = "result";
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
@@ -48,6 +52,7 @@ public:
 	double thresholdRecognizeValue;
 	double thresholdTeachValue;
 	double teachFactor;
+	double teachIndex;
 	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 4, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount) {
 		for(int i = 0; i < signalCount * symbolCount; ++i)
 			_firstLayer.push_back(rand() / LARGE_RAND);
@@ -59,6 +64,7 @@ public:
 		thresholdRecognizeValue = THRESHOLD_RECOGNIZE_VALUE;
 		thresholdTeachValue = THRESHOLD_TEACH_VALUE;
 		teachFactor = TEACH_FACTOR;
+		teachIndex = TEACH_INDEX;
 	}
 
 	void SaveMatrix() {
@@ -634,6 +640,7 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 	ifstream factSymbolStream;
 	for(;;) {
 		factSymbolStream.open(pathListTeach);
+		cout << recognizeCount << endl;
 		recognizeCount = 0;
 		for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
 			if (it->path().extension() == ".txt") {
@@ -658,13 +665,13 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 				if (resultSymbolNumber == factSymbolNumber)
 					++recognizeCount; 
 				else ThreeLayerPerceptron.Teach(factSymbolNumber,signals, fftSignals);
-				if (recognizeCount == fileCount) {
+				if (recognizeCount >= ThreeLayerPerceptron.teachIndex * fileCount) {
 					ThreeLayerPerceptron.SaveMatrix();
 					return true;
 				}
 			}
 			factSymbolStream.close();
-			if (recognizeCount == fileCount) {
+			if (recognizeCount >= ThreeLayerPerceptron.teachIndex * fileCount) {
 				ThreeLayerPerceptron.SaveMatrix();
 				return true;
 			}
@@ -698,8 +705,8 @@ bool NeuralWebRecognition(string fftFolder, string pathListTeach) {
 			fftSignals = signals;
 		cout << "Result symbol: ";
 		if (ThreeLayerPerceptron.Recognize(signals, resultSymbolNumber, IntermediateArray)) {
-			//cout << TransformNumericToLexicalValue(resultSymbolNumber) << endl;
-			cout << resultSymbolNumber << endl;
+			cout << TransformNumericToLexicalValue(resultSymbolNumber) << endl;
+			//cout << resultSymbolNumber << endl;
 			result = true;
 		}
 		else {result = false; cout<< "Bad recognize" << endl; continue;}
@@ -709,9 +716,12 @@ bool NeuralWebRecognition(string fftFolder, string pathListTeach) {
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	setlocale(LC_ALL, "Russian");
 	string mode;
 	char answer = 'y';
 	int imageCount;
+	double start_time, end_time;
+	double timer;
 	for(;;) {
 	if(answer == 'y') {
 		cout << "Choose a mode (teach/recognition): ";
@@ -727,8 +737,12 @@ int _tmain(int argc, _TCHAR* argv[])
 			FormSignals(PATHES_FOLDER + TEACH_FOLDER, FFT_FOLDER, TEACH_MODE);
 			cout << "ready" << endl << "For training used " << 2 * SIGNAL_COUNT << " signals." <<endl;
 			cout << "Starting a learning process: " << endl;
+			start_time = omp_get_wtime();
 			if(NeuralWebTeach(FFT_FOLDER, PATH_LIST_TEACH))
 				cout << "\r		Training is complete!" << endl;
+			end_time = omp_get_wtime();
+			timer = end_time - start_time;
+			wcout << L"Время обучения: " << timer << L" секунд.\n\n";
 		}
 		else if(mode == "recognition") {
 			DeleteFiles(FFT_FOLDER, IMAGE_FOLDER, PATHES_FOLDER, MATRIX_FOLDER, RECOGNITION_MODE);
@@ -741,8 +755,12 @@ int _tmain(int argc, _TCHAR* argv[])
 			FormSignals(PATHES_FOLDER + RECOGNITION_FOLDER, FFT_FOLDER, RECOGNITION_MODE);
 			cout << "ready" << endl << "For recognition used " << 2 * SIGNAL_COUNT << " signals." <<endl;
 			cout << "Starting a recognition process: " << endl;
+			start_time = omp_get_wtime();
 			if(NeuralWebRecognition(FFT_FOLDER, PATH_LIST_RECOGNITION))
 				cout << "\r		Recognition is complete!" << endl;
+			end_time = omp_get_wtime();
+			timer = end_time - start_time;
+			wcout << L"Время распознавания: " << timer << L" секунд.\n\n";
 		}
 		else cout << "Bad value, choose again" << endl;
 	}
