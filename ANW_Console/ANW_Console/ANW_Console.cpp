@@ -21,8 +21,8 @@
 using namespace std;
 const int SYMBOL_COUNT = 32;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
-const int SIGNAL_COUNT = 20;
-const int NEURAL_COUNT = 80;
+const int SIGNAL_COUNT = 30;
+const int NEURAL_COUNT = 240;
 const double LARGE_RAND = 1000000;
 const double TEACH_FACTOR = 0.1;
 const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
@@ -640,7 +640,7 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 	ifstream factSymbolStream;
 	for(;;) {
 		factSymbolStream.open(pathListTeach);
-		cout << recognizeCount << endl;
+		cout << endl << recognizeCount << endl;
 		recognizeCount = 0;
 		for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
 			if (it->path().extension() == ".txt") {
@@ -679,7 +679,7 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 	}
 }
 
-bool NeuralWebRecognition(string fftFolder, string pathListTeach) {
+bool NeuralWebRecognition(string fftFolder, string pathListTeach, int &successCount) {
 	namespace fs = boost::filesystem;
 	NeuralWeb ThreeLayerPerceptron;
 	int resultSymbolNumber;
@@ -708,6 +708,7 @@ bool NeuralWebRecognition(string fftFolder, string pathListTeach) {
 			cout << TransformNumericToLexicalValue(resultSymbolNumber) << endl;
 			//cout << resultSymbolNumber << endl;
 			result = true;
+			++successCount;
 		}
 		else {result = false; cout<< "Bad recognize" << endl; continue;}
 	}
@@ -724,6 +725,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	double timer;
 	for(;;) {
 	if(answer == 'y') {
+		int successCount = 0;
 		cout << "Choose a mode (teach/recognition): ";
 		cin >> mode;
 		if(mode == "teach") { 
@@ -756,10 +758,11 @@ int _tmain(int argc, _TCHAR* argv[])
 			cout << "ready" << endl << "For recognition used " << 2 * SIGNAL_COUNT << " signals." <<endl;
 			cout << "Starting a recognition process: " << endl;
 			start_time = omp_get_wtime();
-			if(NeuralWebRecognition(FFT_FOLDER, PATH_LIST_RECOGNITION))
+			if(NeuralWebRecognition(FFT_FOLDER, PATH_LIST_RECOGNITION, successCount))
 				cout << "\r		Recognition is complete!" << endl;
 			end_time = omp_get_wtime();
 			timer = end_time - start_time;
+			cout << "Success recognition count: " << successCount << endl;
 			wcout << L"Время распознавания: " << timer << L" секунд.\n\n";
 		}
 		else cout << "Bad value, choose again" << endl;
