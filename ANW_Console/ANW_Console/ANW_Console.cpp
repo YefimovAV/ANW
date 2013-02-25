@@ -99,7 +99,7 @@ public:
 		return bettaParam * SigmoidalFunction(x) * (1 - SigmoidalFunction(x));
 	}
 
-	double& GetNeural(vector<double> &layer, int layerWidth, int i, int j) {																	//ересь какая-то, без дополнительной переменной вернуть элемент нельзя
+	double& GetNeural(vector<double> &layer, int layerWidth, int i, int j) {																	
 		return layer[i + j * layerWidth];
 	}
 
@@ -180,7 +180,7 @@ public:
 };
 
 int TransformLexicalToNumericValue (string symbol) {
-	int numericValue;
+	int numericValue;																			//надо бы зациклить сии функции
 	if(symbol == "а") numericValue = 0; else
 	if(symbol == "б") numericValue = 1; else
 	if(symbol == "в") numericValue = 2; else
@@ -516,7 +516,7 @@ void FormSignals(string coordinatesFolder, string fftFolder, string mode) {
 			imageName = it->path().filename().string();
 			fftFile.open(fftFolder + mode + imageName);
 			if (whitePixelCount >= 4 * SIGNAL_COUNT) {
-				for (int i = 3; i < 3 + 2 * SIGNAL_COUNT; ++i)											// Сигналы формируются начиная с первого элемента ряда Фурье, а не с нулевого.
+				for (int i = 3; i < 3 + 2 * SIGNAL_COUNT; ++i)											//Alert! Magic Numbers! Сигналы формируются начиная с первого элемента ряда Фурье, а не с нулевого.
 					fftFile << signals[i] << endl;
 				for (int i = whitePixelCount - 2 * SIGNAL_COUNT; i < whitePixelCount; ++i)		// В обратную сторону сигналы формируются начиная с последнего элемента ряда Фурье
 					fftFile << signals[i] << endl;
