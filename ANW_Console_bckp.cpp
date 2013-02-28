@@ -22,12 +22,12 @@ using namespace std;
 const int SYMBOL_COUNT = 32;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
 const int SIGNAL_COUNT = 30;
-const int NEURAL_COUNT = 80;
+const int NEURAL_COUNT = 240;
 const double LARGE_RAND = 1000000;
-const double TEACH_FACTOR = 0.07;
+const double TEACH_FACTOR = 0.1;
 const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
 const double THRESHOLD_TEACH_VALUE = 0.95;
-const double TEACH_INDEX = 1;
+const double TEACH_INDEX = 0.92;
 const string RESULT_FOLDER = "result";
 const string TEACH_FOLDER = "teach/";
 const string RECOGNITION_FOLDER = "recognition/";
@@ -48,19 +48,23 @@ public:
 	unsigned _signalCount;
 	unsigned _symbolCount;
 	unsigned _neuralCount;
-	double _bettaParam;
-	double _thresholdRecognizeValue;
-	double _thresholdTeachValue;
-	double _teachFactor;
-	double _teachIndex;
-	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 4, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount), 
-		_bettaParam(1), _thresholdRecognizeValue(THRESHOLD_RECOGNIZE_VALUE), _thresholdTeachValue(THRESHOLD_TEACH_VALUE), _teachFactor(TEACH_FACTOR), _teachIndex(TEACH_INDEX) {
+	double bettaParam;
+	double thresholdRecognizeValue;
+	double thresholdTeachValue;
+	double teachFactor;
+	double teachIndex;
+	NeuralWeb(unsigned signalCount = SIGNAL_COUNT * 4, unsigned symbolCount = SYMBOL_COUNT, unsigned neuralCount = NEURAL_COUNT) : _signalCount(signalCount), _symbolCount(symbolCount), _neuralCount(neuralCount) {
 		for(int i = 0; i < signalCount * symbolCount; ++i)
 			_firstLayer.push_back(rand() / LARGE_RAND);
 		for(int i = 0; i < neuralCount * symbolCount; ++i)
 			_secondLayer.push_back(rand() / LARGE_RAND);
 		for(int i = 0; i < symbolCount; ++i)
 			_standard.push_back(NULL);
+		bettaParam = 1;
+		thresholdRecognizeValue = THRESHOLD_RECOGNIZE_VALUE;
+		thresholdTeachValue = THRESHOLD_TEACH_VALUE;
+		teachFactor = TEACH_FACTOR;
+		teachIndex = TEACH_INDEX;
 	}
 
 	void SaveMatrix() {
@@ -88,18 +92,18 @@ public:
 	}
 	
 	double SigmoidalFunction(double x) {
-		return 1 / (1 + exp(_bettaParam * x));	
+		return 1 / (1 + exp(bettaParam * x));	
 	}
 
 	double DiffSigmoidalFunction(double x) {
-		return _bettaParam * SigmoidalFunction(x) * (1 - SigmoidalFunction(x));
+		return bettaParam * SigmoidalFunction(x) * (1 - SigmoidalFunction(x));
 	}
 
 	double& GetNeural(vector<double> &layer, int layerWidth, int i, int j) {																	
 		return layer[i + j * layerWidth];
 	}
 
-	vector<double> NeuralWebFunction(const vector<double> &signalArray, vector<double> &layer, int layerWidth) {
+	vector<double> NeuralWebFunction(vector<double> &signalArray, vector<double> &layer, int layerWidth) {
 		vector<double> result;
 		double temp;
 		for (int i = 0; i < layer.size() / layerWidth; ++i) {
@@ -112,7 +116,7 @@ public:
 		return result;
 	}
 
-	vector<double> DiffNeuralWebFunction(const vector<double> &signalArray, vector<double> &layer, int layerWidth) {
+	vector<double> DiffNeuralWebFunction(vector<double> &signalArray, vector<double> &layer, int layerWidth) {
 		vector<double> result;
 		double temp;
 		for (int i = 0; i < layer.size() / layerWidth; ++i) {
@@ -124,7 +128,7 @@ public:
 		return result;
 	}
 
-	bool Teach(int currentSymbol, vector<double> signalArray, const vector<double> fftArray) {
+	bool Teach(int currentSymbol, vector<double> signalArray, vector<double> fftArray) {
 		vector<double> temp;
 		vector<double> IntermediateArray;
 		vector<double> diffFirstIntermediateArray;
@@ -140,7 +144,7 @@ public:
 			signalArray = fftArray;
 			Recognize(signalArray, resultSymbolNumber, IntermediateArray);
 			for (int i = 0; i < _symbolCount; ++i)  
-				if (fabs(signalArray[i] - _standard[i]) > 1 - _thresholdTeachValue) {
+				if (fabs(signalArray[i] - _standard[i]) > 1 - thresholdTeachValue) {
 					currentResult = false;
 					break;
 				}
@@ -149,11 +153,11 @@ public:
 				diffFirstIntermediateArray = DiffNeuralWebFunction(fftArray, _firstLayer, _signalCount);
 				for (int i = 0; i < _symbolCount; ++i)
 					for (int j = 0; j < _signalCount; ++j)
-						GetNeural(_firstLayer, _signalCount, j, i) += _teachFactor * (signalArray[i] - _standard[i]) * diffFirstIntermediateArray[i] * fftArray[j];
+						GetNeural(_firstLayer, _signalCount, j, i) += teachFactor * (signalArray[i] - _standard[i]) * diffFirstIntermediateArray[i] * fftArray[j];
 				//for (int j = 0; j < _signalCount; ++j)
 				//	for (int i = 0; i < _neuralCount; ++i)
 				//			for (int k = 0; k < _symbolCount; ++k)
-				//			GetNeural(_firstLayer, _signalCount, j, i) += _teachFactor * (signalArray[k] - _standard[k]) * diffSecondIntermediateArray[k] * GetNeural(_secondLayer, _neuralCount, i, k) * diffFirstIntermediateArray[i] * fftArray[j];	
+				//			GetNeural(_firstLayer, _signalCount, j, i) += teachFactor * (signalArray[k] - _standard[k]) * diffSecondIntermediateArray[k] * GetNeural(_secondLayer, _neuralCount, i, k) * diffFirstIntermediateArray[i] * fftArray[j];	
 		}
 	}
 
@@ -165,7 +169,7 @@ public:
 		for(int i = 0; i < signalArray.size(); ++i) {
 			if (maxResultValue < signalArray[i]) {
 				maxResultValue = signalArray[i];
-				if (maxResultValue >= _thresholdRecognizeValue) {
+				if (maxResultValue >= thresholdRecognizeValue) {
 					result = true;
 					resultSymbolNumber = i;
 				}
@@ -176,7 +180,7 @@ public:
 };
 
 int TransformLexicalToNumericValue (string symbol) {
-	int numericValue;																			//надо бы зациклить сии функции, cout << ("я" - "б") / 4;
+	int numericValue;																			//надо бы зациклить сии функции
 	if(symbol == "а") numericValue = 0; else
 	if(symbol == "б") numericValue = 1; else
 	if(symbol == "в") numericValue = 2; else
@@ -523,7 +527,7 @@ void FormSignals(string coordinatesFolder, string fftFolder, string mode) {
 }
 
 void ReadFolder(string loadPath, string savePath) {
-	namespace fs = boost::filesystem;															
+	namespace fs = boost::filesystem;
 	ofstream pathList;
 	string filePath;
 	string symbolValue;
@@ -661,13 +665,13 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 				if (resultSymbolNumber == factSymbolNumber)
 					++recognizeCount; 
 				else ThreeLayerPerceptron.Teach(factSymbolNumber,signals, fftSignals);
-				if (recognizeCount >= ThreeLayerPerceptron._teachIndex * fileCount) {
+				if (recognizeCount >= ThreeLayerPerceptron.teachIndex * fileCount) {
 					ThreeLayerPerceptron.SaveMatrix();
 					return true;
 				}
 			}
 			factSymbolStream.close();
-			if (recognizeCount >= ThreeLayerPerceptron._teachIndex * fileCount) {
+			if (recognizeCount >= ThreeLayerPerceptron.teachIndex * fileCount) {
 				ThreeLayerPerceptron.SaveMatrix();
 				return true;
 			}
