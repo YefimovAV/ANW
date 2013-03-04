@@ -22,7 +22,7 @@ using namespace std;
 const int SYMBOL_COUNT = 32;
 const int MAX_IMAGE_SIZE = 1000 * 1000;
 const int SIGNAL_COUNT = 30;
-const int NEURAL_COUNT = 80;
+const int NEURAL_COUNT = 120;
 const double LARGE_RAND = 1000000;
 const double TEACH_FACTOR = 0.07;
 const double THRESHOLD_RECOGNIZE_VALUE = 0.7;
@@ -39,6 +39,11 @@ const string IMAGE_FOLDER = "result/images/";
 const string PATHES_FOLDER = "result/pathes/";
 const string FFT_FOLDER = "result/fft/";
 const string MATRIX_FOLDER = "result/matrix/";
+
+struct Image {
+	string symbolPath;
+	string symbolValue;
+};
 
 class NeuralWeb {
 public:
@@ -522,7 +527,7 @@ void FormSignals(string coordinatesFolder, string fftFolder, string mode) {
 	}
 }
 
-void ReadFolder(string loadPath, string savePath) {
+void ReadFolder(string loadPath, string savePath, vector<Image*> &images) {						//добавлена структура образа
 	namespace fs = boost::filesystem;															
 	ofstream pathList;
 	string filePath;
@@ -547,6 +552,10 @@ void ReadFolder(string loadPath, string savePath) {
 				filePath += temp;
 				++iterator;
 			}
+			Image *tempImage = new Image;
+			tempImage->symbolPath = "";
+			tempImage->symbolValue = symbolValue;
+			images.push_back(tempImage);
 			cout << it->path().filename() << " " << symbolValue << endl;
 			pathList << filePath << endl << symbolValue << endl;
 		}
@@ -616,7 +625,7 @@ void DeleteFiles(string fftDir, string imageDir, string pathesDir, string matrix
 	}
 }
 
-bool NeuralWebTeach(string fftFolder, string pathListTeach) {
+bool NeuralWebTeach(string fftFolder, string pathListTeach, vector<Image*> images) {
 	namespace fs = boost::filesystem;
 	NeuralWeb ThreeLayerPerceptron;
 	int fileCount = 0;
@@ -629,30 +638,48 @@ bool NeuralWebTeach(string fftFolder, string pathListTeach) {
 	vector<double> signals;
 	vector<double> fftSignals;
 	string fftSymbolPath;
-	for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
-			if (it->path().extension() == ".txt") 
-				++fileCount;
+	//vector<string> fftSymbolPathes;
+	int symbolNumber = 0;
+	for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it) {
+		if (it->path().extension() == ".txt") {
+			++fileCount;
+			int iterator = 0;
+			fftSymbolPath = "";
+			while(it->path().string()[iterator]) {
+				if (it->path().string()[iterator] == '"') continue;
+				string temp = string(&it->path().string()[iterator],0,1);
+				fftSymbolPath += temp;
+				++iterator;
+			}
+			images[symbolNumber]->symbolPath = fftSymbolPath;
+			symbolNumber++; 
+		}
+	}
 	ThreeLayerPerceptron.LoadMatrix();
 	ifstream factSymbolStream;
 	for(;;) {
-		factSymbolStream.open(pathListTeach);
+		//factSymbolStream.open(pathListTeach);
 		cout << endl << recognizeCount << endl;
 		recognizeCount = 0;
-		for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
-			if (it->path().extension() == ".txt") {
-				int iterator = 0;
+		//for (fs::directory_iterator it(fftFolder + "teach/"), end; it != end; ++it)
+		//	if (it->path().extension() == ".txt") {
+		//		int iterator = 0;
+		//		fftSymbolPath = "";
+		//		while(it->path().string()[iterator]) {
+		//			if (it->path().string()[iterator] == '"') continue;
+		//			string temp = string(&it->path().string()[iterator],0,1);
+		//			fftSymbolPath += temp;
+		//			++iterator;
+		//		}
+		//	}
+			random_shuffle(images.begin(), images.end());
+			for(int i = 0; i < images.size(); ++i) {
 				int tempSize = 0;
-				fftSymbolPath = "";
-				while(it->path().string()[iterator]) {
-					if (it->path().string()[iterator] == '"') continue;
-					string temp = string(&it->path().string()[iterator],0,1);
-					fftSymbolPath += temp;
-					++iterator;
-				}
-				signals = ReadFile(fftSymbolPath, tempSize);
+				signals = ReadFile(images[i]->symbolPath, tempSize);
 				fftSignals = signals;
-				getline(factSymbolStream, factSymbolValue);
-				getline(factSymbolStream, factSymbolValue);
+				//getline(factSymbolStream, factSymbolValue);
+				//getline(factSymbolStream, factSymbolValue);
+				factSymbolValue = images[i]->symbolValue;
 				if (factSymbolValue.length() > 0)
 				factSymbolNumber = TransformLexicalToNumericValue(factSymbolValue);
 				else continue;
@@ -715,6 +742,7 @@ int _tmain(int argc, _TCHAR* argv[])
 {
 	setlocale(LC_ALL, "Russian");
 	string mode;
+	vector<Image*> images;
 	char answer = 'y';
 	int imageCount;
 	double start_time, end_time;
@@ -728,7 +756,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			DeleteFiles(FFT_FOLDER, IMAGE_FOLDER, PATHES_FOLDER, MATRIX_FOLDER, TEACH_MODE);
 			cout << "You choose Teach mode" << endl; 
 			cout << "Read folder..." << endl;
-			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH);
+			ReadFolder(TEACH_FOLDER, PATH_LIST_TEACH, images);
 			cout << "Image processing... ";
 			imageCount = ImageProcessing(PATH_LIST_TEACH, TEACH_MODE);
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl << "Handling coordinates...";
@@ -736,7 +764,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			cout << "ready" << endl << "For training used " << 2 * SIGNAL_COUNT << " signals." <<endl;
 			cout << "Starting a learning process: " << endl;
 			start_time = omp_get_wtime();
-			if(NeuralWebTeach(FFT_FOLDER, PATH_LIST_TEACH))
+			if(NeuralWebTeach(FFT_FOLDER, PATH_LIST_TEACH, images))
 				cout << "\r		Training is complete!" << endl;
 			end_time = omp_get_wtime();
 			timer = end_time - start_time;
@@ -746,7 +774,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			DeleteFiles(FFT_FOLDER, IMAGE_FOLDER, PATHES_FOLDER, MATRIX_FOLDER, RECOGNITION_MODE);
 			cout << "You choose recognition mode" << endl; 
 			cout << "Read folder..." << endl;
-			ReadFolder(RECOGNITION_FOLDER, PATH_LIST_RECOGNITION);
+			ReadFolder(RECOGNITION_FOLDER, PATH_LIST_RECOGNITION, images);
 			cout << "Image processing... ";
 			imageCount = ImageProcessing(PATH_LIST_RECOGNITION, RECOGNITION_MODE);
 			cout << "ready" <<endl << "Processed " << imageCount << " images." << endl << "Handling coordinates...";
